@@ -10,13 +10,18 @@ function parseJwt(token,jwt_secret) {
   
   //verify jwt
   var calculatedSign = addSignature(base64Header+"."+base64Payload,jwt_secret);
+  console.log("key",jwt_secret);
+  console.log("cal ",calculatedSign);
   if(calculatedSign == signature){
       isSecretKeyBase64Encoded = false;
   }
   else{
-
+    var decoded = base64decoder(jwt_secret);
+    console.log('decoded  ',decoded);   
+    var calculatedSign = addSignature(base64Header+"."+base64Payload,decoded);
+    console.log("cal ",calculatedSign);
   }
-  console.log("cal ",calculatedSign);
+  
   var header = Buffer.from(base64Header, 'base64');
   var headerJson = JSON.parse(header);
  // console.log("header:- ",JSON.stringify(headerJson));
@@ -44,6 +49,11 @@ function encodingData(jsonData){
     return encodedData;
 }
 
+function base64decoder(base64){
+    var words = CryptoJS.enc.Base64.parse(base64);
+    var decoded = CryptoJS.enc.Utf8.stringify(words);
+    return decoded;
+}
 function base64url(source) {
   // Encode in classical base64
   encodedSource = CryptoJS.enc.Base64.stringify(source);
@@ -155,7 +165,8 @@ function createPrerequisiteMetadata(){
 }
 
 function jwtProcess (){
-    var jwt_secret =  "M2FzN1dWQlpRYWFpVlpPRXNSTnNCeGU3NEVCQ3V3OHFT";//pm.collectionVariables.get(JWT_SECRET);
+    var jwt_secret =  "M2FzN1dWQlpRYWFpVlpPRXNSTnNCeGU3NEVCQ3V3OHFT";
+    //pm.collectionVariables.get(JWT_SECRET);
     var jwt_sample =  pm.collectionVariables.get(JWT_SAMPLE);
     // console.log("jwt initial:- ",jwt_sample);
     //console.log("jwt secret:- ",jwt_secret);
