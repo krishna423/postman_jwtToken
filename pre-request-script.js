@@ -83,10 +83,52 @@ function modifyPayload(payload){
     payload['iss']=pm.collectionVariables.get("iss");
     return payload;
 }
-jwtProcess();
+//jwtProcess();
 
-function parseRequestHeader(){}
-function parseRequestQueryParam(){}
-function parseRequestBody(){}
-function parseFormData(){}
+
+var requstKeysMap = new Map();
+
+function parseRequestHeader(){
+    var requestHeaderList = pm.request.headers.all();
+    for(var headerRaw in requestHeaderList ){
+         var header=requestHeaderList[headerRaw];
+         requstKeysMap.set(header.key,header.value);
+    }
+}
+
+function parseRequestQueryParam(){
+    var queryParamString = pm.request.url.getQueryString();
+    var queryParamList = queryParamString.split('&');
+    console.log(queryParamList);
+    for( var index in queryParamList){
+        var queryParam =  queryParamList[index].split(/=(.+)/);
+        requstKeysMap.set(queryParam[0],queryParam[1]);    
+    }
+    console.log(requstKeysMap);
+}
+
+function parseFormData(){
+
+}
 function parseUrlEncodedData(){}
+
+
+function parseRequestBody(){
+    var requestBody = pm.request.body;
+    switch (requestBody.mode) {
+        case "formdata":
+            console.log(requestBody.mode);
+            break;
+        case "urlencoded":
+            console.log(requestBody.mode);
+            break;
+        case "raw":
+            console.log(requestBody.mode);
+            break;
+        default :
+            console.error("requestBody mode not match"); 
+    }
+
+}
+
+parseRequestBody();
