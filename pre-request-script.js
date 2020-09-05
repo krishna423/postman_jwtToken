@@ -3,14 +3,14 @@ var CryptoJS = require("crypto-js");
 var isSecretKeyBase64Encoded = false;
 var requstKeysMap = new Map();
 
-function verifyJWT(unsignedToken,signature,jwt_secret){
-    var calculatedSign = addSignature(unsignedToken,jwt_secret);
+function verifyJWT(unsignedToken, signature, jwt_secret){
+    var calculatedSign = addSignature(unsignedToken, jwt_secret);
     if(calculatedSign == signature){
       isSecretKeyBase64Encoded = false;
     } 
     else{
         var decoded = base64decoder(jwt_secret);
-        var calculatedSign = addSignature(unsignedToken,decoded);
+        var calculatedSign = addSignature(unsignedToken, decoded);
         if(calculatedSign == signature){
             isSecretKeyBase64Encoded = true ;
         }
@@ -19,26 +19,26 @@ function verifyJWT(unsignedToken,signature,jwt_secret){
         return;
         }
     }
-    console.log("is base64 encoded secret ",isSecretKeyBase64Encoded);
+    console.log("is base64 encoded secret ", isSecretKeyBase64Encoded);
 }
 
-function parseJwt(token,jwt_secret) {
+function parseJwt(token, jwt_secret) {
   var base64Header = token.split('.')[0]; 
   var base64Payload = token.split('.')[1];
   var signature = token.split('.')[2];
-  var unsignedToken=base64Header+"."+base64Payload;
-  verifyJWT(unsignedToken,signature, jwt_secret);
+  var unsignedToken = base64Header + "." + base64Payload;
+  verifyJWT(unsignedToken, signature, jwt_secret);
   var header = Buffer.from(base64Header, 'base64');
   var headerJson = JSON.parse(header);
  // console.log("header:- ",JSON.stringify(headerJson));
   var payload = Buffer.from(base64Payload, 'base64');
   var payloadJson = JSON.parse(payload);
   //console.log("payload:- ",JSON.stringify(payloadJson));
-  return [headerJson,payloadJson];
+  return [headerJson, payloadJson];
 }
 
-function createJwt(header,payload,jwt_secret){
-    console.log("new jwt:-",header,payload);
+function createJwt(header, payload, jwt_secret){
+    console.log("new jwt:-",header, payload);
     var encodedHeader = encodingData(header); 
     //var encodedPayload = encodingData(payload);
     var encodedPayload = encodingData(payload);
@@ -47,7 +47,7 @@ function createJwt(header,payload,jwt_secret){
     if(isSecretKeyBase64Encoded)
         jwt_secret = base64decoder(jwt_secret);
     var jwtToken = unsignedToken + "." + addSignature(unsignedToken, jwt_secret);
-    console.log("new jwt token  :",jwtToken);
+    console.log("new jwt token  :", jwtToken);
     pm.environment.set("jwt_token", jwtToken);
 }
 
@@ -128,12 +128,12 @@ function jsonObjectToMap(jsonData) {
     }
     for(let k of Object.keys(jsonData)) {
         if(jsonData[k] instanceof Object) {
-            requstKeysMap.set(k,JSON.stringify(jsonData[k]));
+            requstKeysMap.set(k, JSON.stringify(jsonData[k]));
             //console.log('object',JSON.stringify(jsonData[k]));
            jsonObjectToMap(jsonData[k]);   
         }
         else {
-            requstKeysMap.set(k,jsonData[k]);
+            requstKeysMap.set(k, jsonData[k]);
         }    
     }
 }
@@ -141,7 +141,7 @@ function jsonObjectToMap(jsonData) {
 function parseRawData(requestRawData){
     var language = requestRawData.options.raw.language;
     var rawData = requestRawData.raw; 
-    if(language!='json'){
+    if(language != 'json' ){
         console.log("Not able to processing language",language);
         return ;
     }
@@ -181,10 +181,10 @@ function jwtProcess (){
     
     setTimeout(function(){
         console.log("keys map;",requstKeysMap);
-        var [header,payload] = parseJwt(jwt_sample,jwt_secret);
+        var [header, payload] = parseJwt(jwt_sample, jwt_secret);
        // console.log("parsed jwt:-  ",header,"    ",payload)
         payload = createPayloadFromBody(payload);
-        createJwt(header,payload,jwt_secret); 
+        createJwt(header,payload, jwt_secret); 
     }, 100);
     
 }
