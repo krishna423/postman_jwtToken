@@ -90,10 +90,7 @@ var requstKeysMap = new Map();
 
 function parseRequestHeader(){
     var requestHeaderList = pm.request.headers.all();
-    for(var headerRaw in requestHeaderList ){
-         var header=requestHeaderList[headerRaw];
-         requstKeysMap.set(header.key,header.value);
-    }
+    parseKeyValuePairFromList(requestHeaderList);
 }
 
 function parseRequestQueryParam(){
@@ -107,27 +104,47 @@ function parseRequestQueryParam(){
     console.log(requstKeysMap);
 }
 
-function parseFormData(){
+function parseFormData(formdataList){
+    for(var index in formdataList){
+        var formdata = formdataList[index];
+        if(formdata.type == "text"){ 
+            requstKeysMap.set(formdata.key,formdata.value);
+        }
+    }
+}
+
+function parseUrlEncodedData(urlEncodedDataList){
+    parseKeyValuePairFromList(urlEncodedDataList);
+}
+
+function parseKeyValuePairFromList(dataList){
+    for(var index in dataList ){
+         var keyValuePair = dataList[index];
+         requstKeysMap.set(keyValuePair.key,keyValuePair.value);
+    }
+}
+
+function parseRawData(){
 
 }
-function parseUrlEncodedData(){}
-
 
 function parseRequestBody(){
     var requestBody = pm.request.body;
+    console.log(requestBody.urlencoded.all());
     switch (requestBody.mode) {
         case "formdata":
-            console.log(requestBody.mode);
+            parseFormData(requestBody.formdata.all());
             break;
         case "urlencoded":
-            console.log(requestBody.mode);
+            parseUrlEncodedData(requestBody.urlencoded.all());
             break;
         case "raw":
-            console.log(requestBody.mode);
+            parseRawData(requestBody.raw);
             break;
         default :
-            console.error("requestBody mode not match"); 
+            console.info("requestBody mode not match"); 
     }
+    console.log(requstKeysMap);
 
 }
 
