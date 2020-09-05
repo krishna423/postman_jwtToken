@@ -84,3 +84,9 @@ function modifyPayload(payload){
     return payload;
 }
 jwtProcess();
+
+function parseRequestHeader(){}
+function parseRequestQueryParam(){}
+function parseRequestBody(){}
+function parseFormData(){}
+function parseUrlEncodedData(){}
