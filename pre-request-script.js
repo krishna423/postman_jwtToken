@@ -96,12 +96,10 @@ function parseRequestHeader(){
 function parseRequestQueryParam(){
     var queryParamString = pm.request.url.getQueryString();
     var queryParamList = queryParamString.split('&');
-    console.log(queryParamList);
     for( var index in queryParamList){
         var queryParam =  queryParamList[index].split(/=(.+)/);
         requstKeysMap.set(queryParam[0],queryParam[1]);    
     }
-    console.log(requstKeysMap);
 }
 
 function parseFormData(formdataList){
@@ -124,13 +122,37 @@ function parseKeyValuePairFromList(dataList){
     }
 }
 
-function parseRawData(){
+function jsonObjectToMap(jsonData) {
+    if( Array.isArray(jsonData) ){
+        jsonData = jsonData[0];
+    }
+    for(let k of Object.keys(jsonData)) {
+        if(jsonData[k] instanceof Object) {
+            requstKeysMap.set(k,JSON.stringify(jsonData[k]));
+            //console.log('object',JSON.stringify(jsonData[k]));
+           jsonObjectToMap(jsonData[k]);   
+        }
+        else {
+            requstKeysMap.set(k,jsonData[k]);
+        }    
+    }
+}
+
+function parseRawData(requestRawData){
+    var language = requestRawData.options.raw.language;
+    var rawData = requestRawData.raw; 
+    if(language!='json'){
+        console.log("Not able to processing language",language);
+        return ;
+    }
+    var jsonData = JSON.parse(rawData);
+    jsonObjectToMap(jsonData);
 
 }
 
+
 function parseRequestBody(){
     var requestBody = pm.request.body;
-    console.log(requestBody.urlencoded.all());
     switch (requestBody.mode) {
         case "formdata":
             parseFormData(requestBody.formdata.all());
@@ -139,7 +161,7 @@ function parseRequestBody(){
             parseUrlEncodedData(requestBody.urlencoded.all());
             break;
         case "raw":
-            parseRawData(requestBody.raw);
+            parseRawData(requestBody);
             break;
         default :
             console.info("requestBody mode not match"); 
@@ -148,4 +170,10 @@ function parseRequestBody(){
 
 }
 
-parseRequestBody();
+function createPrerequisiteMetadata(){
+    parseRequestHeader();
+    parseRequestQueryParam();
+    parseRequestBody();
+}
+
+createPrerequisiteMetadata();
