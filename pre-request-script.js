@@ -30,19 +30,14 @@ function parseJwt(token, jwt_secret) {
   verifyJWT(unsignedToken, signature, jwt_secret);
   var header = Buffer.from(base64Header, 'base64');
   var headerJson = JSON.parse(header);
- // console.log("header:- ",JSON.stringify(headerJson));
   var payload = Buffer.from(base64Payload, 'base64');
   var payloadJson = JSON.parse(payload);
-  //console.log("payload:- ",JSON.stringify(payloadJson));
   return [headerJson, payloadJson];
 }
 
 function createJwt(header, payload, jwt_secret){
     console.log("new jwt:-",header, payload);
     var encodedHeader = encodingData(header); 
-    //var encodedPayload = encodingData(payload);
-    var encodedPayload = encodingData(payload);
-   //console.log("encoded header-",encodedHeader ,"  encoded payload",encodedPayload)
     var unsignedToken = encodedHeader + "." + encodedPayload;
     if(isSecretKeyBase64Encoded)
         jwt_secret = base64decoder(jwt_secret);
@@ -63,19 +58,14 @@ function base64decoder(base64){
     return decoded;
 }
 function base64url(source) {
-  // Encode in classical base64
   encodedSource = CryptoJS.enc.Base64.stringify(source);
-  // Remove padding equal characters
   encodedSource = encodedSource.replace(/=+$/, '');
-  // Replace characters according to base64url specifications
   encodedSource = encodedSource.replace(/\+/g, '-');
   encodedSource = encodedSource.replace(/\//g, '_');
   return encodedSource;
 }
 
 function addSignature(unsignedToken,jwt_secret){
-    //var hmac = CryptoJS.createHmac('hmac-sha256', jwt_secret);
-    //return hmac.update(unsignedToken).digest('base64');
     return base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
 }
 
@@ -129,7 +119,6 @@ function jsonObjectToMap(jsonData) {
     for(let k of Object.keys(jsonData)) {
         if(jsonData[k] instanceof Object) {
             requstKeysMap.set(k, JSON.stringify(jsonData[k]));
-            //console.log('object',JSON.stringify(jsonData[k]));
            jsonObjectToMap(jsonData[k]);   
         }
         else {
@@ -175,14 +164,11 @@ function createPrerequisiteMetadata(){
 function jwtProcess (){
     var jwt_secret =  pm.collectionVariables.get(JWT_SECRET);
     var jwt_sample =  pm.collectionVariables.get(JWT_SAMPLE);
-    // console.log("jwt initial:- ",jwt_sample);
-    //console.log("jwt secret:- ",jwt_secret);
     createPrerequisiteMetadata();
     
     setTimeout(function(){
         console.log("keys map;",requstKeysMap);
         var [header, payload] = parseJwt(jwt_sample, jwt_secret);
-       // console.log("parsed jwt:-  ",header,"    ",payload)
         payload = createPayloadFromBody(payload);
         createJwt(header,payload, jwt_secret); 
     }, 100);
