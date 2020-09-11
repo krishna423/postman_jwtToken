@@ -1,16 +1,17 @@
 var CryptoJS = require("crypto-js");
 
-var isSecretKeyBase64Encoded = false;
-var requstKeysMap = new Map();
+isSecretKeyBase64Encoded = false;
+requstKeysMap = new Map();
 
+({
 function verifyJWT(unsignedToken, signature, jwt_secret){
-    var calculatedSign = addSignature(unsignedToken, jwt_secret);
+    calculatedSign = addSignature(unsignedToken, jwt_secret);
     if(calculatedSign == signature){
       isSecretKeyBase64Encoded = false;
     } 
     else{
-        var decoded = base64decoder(jwt_secret);
-        var calculatedSign = addSignature(unsignedToken, decoded);
+        decoded = base64decoder(jwt_secret);
+        calculatedSign = addSignature(unsignedToken, decoded);
         if(calculatedSign == signature){
             isSecretKeyBase64Encoded = true ;
         }
@@ -21,6 +22,7 @@ function verifyJWT(unsignedToken, signature, jwt_secret){
     }
     console.log("is base64 encoded secret ", isSecretKeyBase64Encoded);
 }
+})
 
 function parseJwt(token, jwt_secret) {
   var base64Header = token.split('.')[0]; 
