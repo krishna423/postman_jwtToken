@@ -2,13 +2,9 @@ var cdd = `
     ({
         isSecretKeyBase64Encoded : false,
         requstKeysMap : new Map(),
-        yuy : require('fs'),
         func1()
         {
-            console.log('This comes from func1',this.isSecretKeyBase64Encoded);
-            fs.readFile('~/a.csv', function(err, data) {
-             res.write(data);
-            });
+            console.log('This comes from func1',this.isSecretKeyBase64Encoded)
         },
         func2()
         {
