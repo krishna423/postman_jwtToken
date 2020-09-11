@@ -86,7 +86,7 @@ function parseRequestHeader(){
 
 function parseRequestQueryParam(){
     var queryParamString = pm.request.url.getQueryString();
-    if(queryParamString)
+    if(!queryParamString)
        return;
     var queryParamList = queryParamString.split('&');
     for( var index in queryParamList){
