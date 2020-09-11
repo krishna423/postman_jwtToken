@@ -15,8 +15,8 @@ function verifyJWT(unsignedToken, signature, jwt_secret){
             isSecretKeyBase64Encoded = true ;
         }
         else{
-        console.log("Invalid jwt");
-        return;
+            console.log("Invalid jwt");
+            return;
         }
     }
     console.log("is base64 encoded secret ", isSecretKeyBase64Encoded);
@@ -38,6 +38,7 @@ function parseJwt(token, jwt_secret) {
 function createJwt(header, payload, jwt_secret){
     console.log("new jwt:-",header, payload);
     var encodedHeader = encodingData(header); 
+    var encodedPayload = encodingData(payload);
     var unsignedToken = encodedHeader + "." + encodedPayload;
     if(isSecretKeyBase64Encoded)
         jwt_secret = base64decoder(jwt_secret);
