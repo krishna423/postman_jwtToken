@@ -60,9 +60,13 @@ function base64decoder(base64){
 }
 function base64url(source) {
   encodedSource = CryptoJS.enc.Base64.stringify(source);
-  encodedSource = encodedSource.replace(/=+$/, '');
-  encodedSource = encodedSource.replace(/\+/g, '-');
-  encodedSource = encodedSource.replace(/\//g, '_');
+  encodedSource = encodedSource.split('=').join('');
+  encodedSource = encodedSource.split('+').join('-');
+  encodedSource = encodedSource.split('/').join('_');
+  //replace with import base64url
+  // encodedSource = encodedSource.replace(/=+$/, '');
+  // encodedSource = encodedSource.replace(/\+/g, '-');
+  // encodedSource = encodedSource.replace(/\//g, '_');
   return encodedSource;
 }
 

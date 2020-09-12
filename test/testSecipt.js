@@ -1,7 +1,9 @@
-var k=`({
+var stringScript = `({
         isSecretKeyBase64Encoded : false,
         requstKeysMap : new Map(),
+
 //----------------------------create map of keyvalue------------------------
+        
         createPayloadFromBody(jsonBody){
             for(let key of Object.keys(jsonBody)) {
                 if(requstKeysMap.has(key)) {
@@ -94,8 +96,9 @@ var k=`({
             this.parseRequestHeader();
             this.parseRequestQueryParam();
             this.parseRequestBody();
-            console.log('request map',this.requstKeysMap)
+            //console.log('request map',this.requstKeysMap)
         },
+
 //------------------------parseJwt----------------------------------
 
         parseJwt(token, jwt_secret) {
@@ -145,24 +148,23 @@ var k=`({
         
         base64url(source) {
             encodedSource = CryptoJS.enc.Base64.stringify(source);
-            encodedSource = encodedSource.replace(/=+$/, '');
-            //need to fix this
-            //encodedSource = encodedSource.replace('/\+/g', '-');
-            //encodedSource = encodedSource.replace('/\//g', '_');
+            encodedSource = encodedSource.split('=').join('');
+            encodedSource = encodedSource.split('+').join('-');
+            encodedSource = encodedSource.split('/').join('_');
             return encodedSource;
         },
 
 //---------------------create jwt--------------------------------
         
         createJwt(header, payload, jwt_secret){
-            console.log("new jwt:-",header, payload);
+            //console.log("new jwt:-",header, payload);
             encodedHeader = this.encodingData(header); 
             encodedPayload = this.encodingData(payload);
             unsignedToken = encodedHeader + "." + encodedPayload;
             if(this.isSecretKeyBase64Encoded)
                 jwt_secret = this.base64decoder(jwt_secret);
             jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret);
-            console.log("new jwt token  :", jwtToken);
+            console.log("New jwt token :", jwtToken);
             pm.environment.set("jwt_token", jwtToken);
         },
 
@@ -171,7 +173,6 @@ var k=`({
             encodedData = this.base64url(stringifiedData);
             return encodedData;
         },
-
         
         createPayloadFromBody(jsonBody){
             for(let key of Object.keys(jsonBody)) {
@@ -184,31 +185,27 @@ var k=`({
 
 //--------------------calling funtion----------------------------
 
-        jwtProcess (){
+        jwtProcess(){
             jwt_secret =  pm.collectionVariables.get(JWT_SECRET);
             jwt_sample =  pm.collectionVariables.get(JWT_SAMPLE);
+
             this.createPrerequisiteMetadata();
             [header, payload] = this.parseJwt(jwt_sample, jwt_secret);
             thisObj = this;
             setTimeout(function(){
-                console.log("keys map innnn ",thisObj.requstKeysMap,header,payload);
+                console.log("New keysMap,",thisObj.requstKeysMap);
                 payload = thisObj.createPayloadFromBody(payload);
                 setTimeout(function(){
+                    console.log("New header payload",header,payload);
                     thisObj.createJwt(header,payload, jwt_secret); 
                 }, 100);
 
             }, 100);
-            
         }
-
     })`;
 
-    
 
 var JWT_SECRET = "ps_jwt_secret_key";
 var JWT_SAMPLE = "ps_jwt_sample";
-const obj = eval(k);
+const obj = eval(stringScript);
 obj.jwtProcess();
-// [header, payload] = obj.parseJwt(jwt_sample, jwt_secret);
-// obj.createJwt(header,payload, jwt_secret); 
-
