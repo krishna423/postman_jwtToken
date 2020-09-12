@@ -6,6 +6,7 @@ var cdd = `
         {
             console.log('This comes from func1',this.isSecretKeyBase64Encoded)
         },
+        /*----------------dasdsa-------------*/
         func2()
         {
             this.requstKeysMap.set('as','asaasa');
@@ -14,6 +15,19 @@ var cdd = `
         func3(k)
         {
             console.log('This comes from func3',k)
+        },
+        jwtProcess(){
+            jwt_secret =  pm.collectionVariables.get(JWT_SECRET);
+            jwt_sample =  pm.collectionVariables.get(JWT_SAMPLE);
+
+            this.func3();
+            thisObj = this;
+            setTimeout(function(){
+                console.log("New keysMap,",thisObj.requstKeysMap);
+                console.log("ffff",thisObj.func2());
+                console.log('secret',jwt_secret,jwt_sample);
+
+            }, 100);
         }
     })
 `;
