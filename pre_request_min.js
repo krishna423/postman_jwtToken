@@ -1,86 +1,208 @@
-CryptoJS = require("crypto-js");
+({
+    /**
+     * @Author Krishna K. Maurya
+     * @Project autoJWTCreation
+     * Date 12/09/20 09:41:43 PM
+     **/
 
-function parseJwt(token) {
-  var base64Header = token.split('.')[0]; 
-  var base64Payload = token.split('.')[1];
-  var header = Buffer.from(base64Header, 'base64');
-  var headerJson = JSON.parse(header);
- // console.log("header:- ",JSON.stringify(headerJson));
-  var payload = Buffer.from(base64Payload, 'base64');
-  var payloadJson = JSON.parse(payload);
-  //console.log("payload:- ",JSON.stringify(payloadJson));
-  return [headerJson,payloadJson];
-}
+    isSecretKeyBase64Encoded : false,
+    requstKeysMap : new Map(),
 
-function createJwt(header,payload,jwt_secret){
-    console.log("new jwt:-",header,payload);
-    var encodedHeader = encodingData(header); 
-    //var encodedPayload = encodingData(payload);
-    var encodedPayload = encodingData(payload);
-   //console.log("encoded header-",encodedHeader ,"  encoded payload",encodedPayload)
-    var unsignedToken = encodedHeader + "." + encodedPayload;
-    var jwtToken = unsignedToken + "." + addSignature(unsignedToken, jwt_secret);
-    console.log("new jwt token  :",jwtToken);
-    pm.environment.set("jwt_token", jwtToken);
-}
-function encodingData(jsonData){
-    var stringifiedData = CryptoJS.enc.Utf8.parse(JSON.stringify(jsonData));
-    var encodedData = base64url(stringifiedData);
-    return encodedData;
-}
-function base64url(source) {
-  // Encode in classical base64
-  encodedSource = CryptoJS.enc.Base64.stringify(source);
-  // Remove padding equal characters
-  encodedSource = encodedSource.replace(/=+$/, '');
-  // Replace characters according to base64url specifications
-  encodedSource = encodedSource.replace(/\+/g, '-');
-  encodedSource = encodedSource.replace(/\//g, '_');
-  return encodedSource;
-}
+/*--------------------create map of keyvalue-------------------------*/
+    
+    createPayloadFromBody(jsonBody){
+        for(let key of Object.keys(jsonBody)) {
+            if(requstKeysMap.has(key)) {
+                jsonBody[key] = requstKeysMap.get(key);   
+            }    
+        }    
+        return jsonBody;
+    },
 
+    parseRequestHeader(){
+        requestHeaderList = pm.request.headers.all();
+        this.parseKeyValuePairFromList(requestHeaderList);
+    },
 
-function addSignature(unsignedToken,jwt_secret){
-    return base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
-}
+    parseRequestQueryParam(){
+        queryParamString = pm.request.url.getQueryString();
+        if(!queryParamString)
+            return;
+        queryParamList = queryParamString.split('&');
+        for( var index in queryParamList){
+            queryParam =  queryParamList[index].split(/=(.+)/);
+            this.requstKeysMap.set(queryParam[0],queryParam[1]);    
+        }
+    },
 
-function jwtProcess (){
-    var jwt_secret =  pm.collectionVariables.get(JWT_SECRET);
-    var jwt_sample =  pm.collectionVariables.get(JWT_SAMPLE);
-    // console.log("jwt initial:- ",jwt_sample);
-    //console.log("jwt secret:- ",jwt_secret);
-    var [header,payload] = parseJwt(jwt_sample);
-    //console.log("parsed jwt:-  ",header,"    ",payload)
-    payload = createPayloadFromBody();
-    createJwt(header,payload,jwt_secret); 
-}
+    parseFormData(formdataList){
+        for(var index in formdataList){
+            formdata = formdataList[index];
+            if(formdata.type == "text"){ 
+                this.requstKeysMap.set(formdata.key,formdata.value);
+            }
+        }
+    },
 
-function createPayloadFromBody(){
-    var requestBody=pm.request.body;
-    //console.log(requestBody.options.raw.language);
-    if(requestBody.mode!="raw"){
-    console.error("script not configured for mode : ",requestBody.mode);
-    return;
+    parseUrlEncodedData(urlEncodedDataList){
+        this.parseKeyValuePairFromList(urlEncodedDataList);
+    },
+
+    parseKeyValuePairFromList(dataList){
+        for(var index in dataList ){
+            keyValuePair = dataList[index];
+            this.requstKeysMap.set(keyValuePair.key,keyValuePair.value);
+        }
+    },
+
+    jsonObjectToMap(jsonData) {
+        if( Array.isArray(jsonData) ){
+            jsonData = jsonData[0];
+        }
+        for(let k of Object.keys(jsonData)) {
+            if(jsonData[k] instanceof Object) {
+                this.requstKeysMap.set(k, JSON.stringify(jsonData[k]));
+            this.jsonObjectToMap(jsonData[k]);   
+            }
+            else {
+                this.requstKeysMap.set(k, jsonData[k]);
+            }    
+        }
+    },
+
+    parseRawData(requestRawData){
+        language = requestRawData.options.raw.language;
+        rawData = requestRawData.raw; 
+        if(language != 'json' ){
+            console.log("Not able to processing language",language);
+            return ;
+        }
+        jsonData = JSON.parse(rawData);
+        this.jsonObjectToMap(jsonData);
+    },
+
+    parseRequestBody(){
+        requestBody = pm.request.body;
+        switch (requestBody.mode) {
+            case "formdata":
+                this.parseFormData(requestBody.formdata.all());
+                break;
+            case "urlencoded":
+                this.parseUrlEncodedData(requestBody.urlencoded.all());
+                break;
+            case "raw":
+                this.parseRawData(requestBody);
+                break;
+            default :
+                console.info("requestBody mode not match"); 
+        }
+    },
+
+    createPrerequisiteMetadata(){
+        this.parseRequestHeader();
+        this.parseRequestQueryParam();
+        this.parseRequestBody();
+        /*console.log('request map',this.requstKeysMap)*/
+    },
+
+/*-----------------------------parseJwt-----------------------------*/
+
+    parseJwt(token, jwt_secret) {
+        base64Header = token.split('.')[0]; 
+        base64Payload = token.split('.')[1];
+        signature = token.split('.')[2];
+        unsignedToken = base64Header + "." + base64Payload;
+        this.verifyJWT(unsignedToken, signature, jwt_secret);
+        header = Buffer.from(base64Header, 'base64');
+        headerJson = JSON.parse(header);
+        payload = Buffer.from(base64Payload, 'base64');
+        payloadJson = JSON.parse(payload);
+        return [headerJson, payloadJson];
+    },
+
+    verifyJWT(unsignedToken, signature, jwt_secret){
+        calculatedSign = this.addSignature(unsignedToken, jwt_secret);
+        if(calculatedSign == signature){
+            this.isSecretKeyBase64Encoded = false;
+        } else{
+            decoded = this.base64decoder(jwt_secret);
+            calculatedSign = this.addSignature(unsignedToken, decoded);
+            if(calculatedSign == signature){
+                this.isSecretKeyBase64Encoded = true ;
+            }
+            else{
+                console.log("Invalid jwt");
+                return;
+            }
+        }
+        console.log("is base64 encoded secret ", this.isSecretKeyBase64Encoded);
+    },        
+
+    base64decoder(base64){
+        words = CryptoJS.enc.Base64.parse(base64);
+        decoded = CryptoJS.enc.Utf8.stringify(words);
+        return decoded;
+    },
+
+/*---------------------utility---------------------------------------*/
+    
+    addSignature(unsignedToken,jwt_secret){
+        return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
+    },
+    
+    base64url(source) {
+        encodedSource = CryptoJS.enc.Base64.stringify(source);
+        encodedSource = encodedSource.split('=').join('');
+        encodedSource = encodedSource.split('+').join('-');
+        encodedSource = encodedSource.split('/').join('_');
+        return encodedSource;
+    },
+
+/*---------------------create jwt--------------------------------*/
+    
+    createJwt(header, payload, jwt_secret){
+        /*console.log("new jwt:-",header, payload);*/
+        encodedHeader = this.encodingData(header); 
+        encodedPayload = this.encodingData(payload);
+        unsignedToken = encodedHeader + "." + encodedPayload;
+        if(this.isSecretKeyBase64Encoded)
+            jwt_secret = this.base64decoder(jwt_secret);
+        jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret);
+        console.log("New jwt token :", jwtToken);
+        pm.environment.set("jwt_token", jwtToken);
+    },
+
+    encodingData(jsonData){
+        stringifiedData = CryptoJS.enc.Utf8.parse(JSON.stringify(jsonData));
+        encodedData = this.base64url(stringifiedData);
+        return encodedData;
+    },
+    
+    createPayloadFromBody(jsonBody){
+        for(let key of Object.keys(jsonBody)) {
+            if(this.requstKeysMap.has(key)) {
+                jsonBody[key] = this.requstKeysMap.get(key);   
+            }    
+        }    
+        return jsonBody;
+    },
+
+/*-------------------------calling funtion--------------------------*/
+
+    jwtProcess(){
+        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
+        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
+        this.createPrerequisiteMetadata();
+        [header, payload] = this.parseJwt(jwt_sample, jwt_secret);
+        thisObj = this;
+        setTimeout(function(){
+            console.log("New keysMap,",thisObj.requstKeysMap);
+            payload = thisObj.createPayloadFromBody(payload);
+            setTimeout(function(){
+                console.log("New header payload",header,payload);
+                thisObj.createJwt(header,payload, jwt_secret); 
+            }, 100);
+
+        }, 100);
     }
-    if(requestBody.options.raw.language!="json"){
-    console.error("script not configured for language : ",requestBody.options.raw.language);
-    return;
-    }
-    var requestBodyPayload=JSON.parse(requestBody.raw);
-    return modifyPayload(requestBodyPayload);
-}
-
-
-// //---------------------------------config-------------------------------------------
-
-
-
-var JWT_SECRET = "ps_jwt_secret_key";
-var JWT_SAMPLE = "ps_jwt_sample";
-
-function modifyPayload(payload){
-    //add new field in json
-    payload['iss']=pm.collectionVariables.get("iss");
-    return payload;
-}
-jwtProcess();
+})
