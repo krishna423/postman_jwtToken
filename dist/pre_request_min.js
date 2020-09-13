@@ -169,7 +169,7 @@
             jwt_secret = this.base64decoder(jwt_secret);
         jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret);
         console.log("New jwt token :", jwtToken);
-        pm.environment.set("jwt_token", jwtToken);
+        pm.globals.set("jwt_token", jwtToken);
     },
 
     encodingData(jsonData){
