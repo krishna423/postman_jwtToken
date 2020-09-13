@@ -44,7 +44,7 @@ function createJwt(header, payload, jwt_secret){
         jwt_secret = base64decoder(jwt_secret);
     var jwtToken = unsignedToken + "." + addSignature(unsignedToken, jwt_secret);
     console.log("new jwt token  :", jwtToken);
-    pm.environment.set("jwt_token", jwtToken);
+    pm.globals.set("jwt_token", jwtToken);
 }
 
 function encodingData(jsonData){
