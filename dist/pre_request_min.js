@@ -5,8 +5,14 @@
      * Date 12/09/20 09:41:43 PM
      **/
 
-    isSecretKeyBase64Encoded : false,
-    requstKeysMap : new Map(),
+    FORM_DATA_TEXT              : "text";
+    BODY_LANGUAGE_JSON          : "json"; 
+    BODY_LANGUAGE_XML           : "xml";
+    BODY_FORMDATA               : "formdata";
+    BODY_URL_ENCODED            : "urlencoded";
+    BODY_RAW                    : "raw";
+    isSecretKeyBase64Encoded    : false,
+    requstKeysMap               : new Map(),
 
 /*--------------------create map of keyvalue-------------------------*/
     

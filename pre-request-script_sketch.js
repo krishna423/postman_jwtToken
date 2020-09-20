@@ -4,8 +4,14 @@
      * Date 12/09/20 09:41:43 PM
      **/
 
-    isSecretKeyBase64Encoded = false,
-    requstKeysMap = new Map(),
+    FORM_DATA_TEXT              = "text";
+    BODY_LANGUAGE_JSON          = "json"; 
+    BODY_LANGUAGE_XML           = "xml";
+    BODY_FORMDATA               = "formdata";
+    BODY_URL_ENCODED            = "urlencoded";
+    BODY_RAW                    = "raw";
+    isSecretKeyBase64Encoded    = false,
+    requstKeysMap               = new Map(),
 
 /*--------------------create map of keyvalue-------------------------*/
     
@@ -37,7 +43,7 @@
     function parseFormData(formdataList){
         for(var index in formdataList){
             formdata = formdataList[index];
-            if(formdata.type == "text"){ 
+            if(formdata.type == FORM_DATA_TEXT ){ 
                  requstKeysMap.set(formdata.key,formdata.value);
             }
         }
@@ -72,7 +78,7 @@
     function parseRawData(requestRawData){
         language = requestRawData.options.raw.language;
         rawData = requestRawData.raw; 
-        if(language != 'json' ){
+        if(language != BODY_LANGUAGE_JSON ){
             console.log("Not able to processing language",language);
             return ;
         }
@@ -83,13 +89,13 @@
     function parseRequestBody(){
         requestBody = pm.request.body;
         switch (requestBody.mode) {
-            case "formdata":
+            case BODY_FORMDATA :
                  parseFormData(requestBody.formdata.all());
                 break;
-            case "urlencoded":
+            case BODY_URL_ENCODED:
                  parseUrlEncodedData(requestBody.urlencoded.all());
                 break;
-            case "raw":
+            case BODY_RAW :
                  parseRawData(requestBody);
                 break;
             default :
