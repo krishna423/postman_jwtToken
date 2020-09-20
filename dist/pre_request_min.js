@@ -5,8 +5,14 @@
      * Date 12/09/20 09:41:43 PM
      **/
 
-    isSecretKeyBase64Encoded : false,
-    requstKeysMap : new Map(),
+    FORM_DATA_TEXT              : "text",
+    BODY_LANGUAGE_JSON          : "json", 
+    BODY_LANGUAGE_XML           : "xml",
+    BODY_FORMDATA               : "formdata",
+    BODY_URL_ENCODED            : "urlencoded",
+    BODY_RAW                    : "raw",
+    isSecretKeyBase64Encoded    : false,
+    requstKeysMap               : new Map(),
 
 /*--------------------create map of keyvalue-------------------------*/
     
@@ -38,7 +44,7 @@
     parseFormData(formdataList){
         for(var index in formdataList){
             formdata = formdataList[index];
-            if(formdata.type == "text"){ 
+            if(formdata.type == this.FORM_DATA_TEXT ){ 
                 this.requstKeysMap.set(formdata.key,formdata.value);
             }
         }
@@ -71,9 +77,17 @@
     },
 
     parseRawData(requestRawData){
-        language = requestRawData.options.raw.language;
+        var language = ""; 
+            try{
+            language = requestRawData.options.raw.language;
+        }
+        catch(err){
+            console.log(err);
+            var header = pm.request.getHeaders();
+            language = header['Content-Type'].split('/')[1];
+        }
         rawData = requestRawData.raw; 
-        if(language != 'json' ){
+        if(language != this.BODY_LANGUAGE_JSON ){
             console.log("Not able to processing language",language);
             return ;
         }
@@ -83,14 +97,18 @@
 
     parseRequestBody(){
         requestBody = pm.request.body;
+        if(requestBody == undefined ){
+            console.log('request body is empty');
+            return;
+        }
         switch (requestBody.mode) {
-            case "formdata":
+            case this.BODY_FORMDATA :
                 this.parseFormData(requestBody.formdata.all());
                 break;
-            case "urlencoded":
+            case this.BODY_URL_ENCODED :
                 this.parseUrlEncodedData(requestBody.urlencoded.all());
                 break;
-            case "raw":
+            case this.BODY_RAW :
                 this.parseRawData(requestBody);
                 break;
             default :
