@@ -15,6 +15,7 @@ var kk =`({
     BODY_FORMDATA               : "formdata",
     BODY_URL_ENCODED            : "urlencoded",
     BODY_RAW                    : "raw",
+    UNDEFINED                   : "undefined",
     isSecretKeyBase64Encoded    : false,
     requstKeysMap               : new Map(),
 
@@ -81,7 +82,15 @@ var kk =`({
     },
 
     parseRawData(requestRawData){
-        language = requestRawData.options.raw.language;
+        var language = ""; 
+            try{
+            language = requestRawData.options.raw.language;
+        }
+        catch(err){
+            console.log(err);
+            var header = pm.request.getHeaders();
+            language = header['Content-Type'].split('/')[1];
+        }
         rawData = requestRawData.raw; 
         if(language != this.BODY_LANGUAGE_JSON ){
             console.log("Not able to processing language",language);
@@ -93,6 +102,10 @@ var kk =`({
 
     parseRequestBody(){
         requestBody = pm.request.body;
+        if(request == UNDEFINED){
+            console.log('request body is empty');
+            return;
+        }
         switch (requestBody.mode) {
             case this.BODY_FORMDATA :
                 this.parseFormData(requestBody.formdata.all());

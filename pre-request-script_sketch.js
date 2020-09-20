@@ -10,6 +10,7 @@
     BODY_FORMDATA               = "formdata",
     BODY_URL_ENCODED            = "urlencoded",
     BODY_RAW                    = "raw",
+    UNDEFINED                   = "undefined",
     isSecretKeyBase64Encoded    = false,
     requstKeysMap               = new Map(),
 
@@ -76,18 +77,30 @@
     }
 
     function parseRawData(requestRawData){
-        language = requestRawData.options.raw.language;
+        var language = ""; 
+            try{
+            language = requestRawData.options.raw.language;
+        }
+        catch(err){
+            console.log(err);
+            var header = pm.request.getHeaders();
+            language = header['Content-Type'].split('/')[1];
+        }
         rawData = requestRawData.raw; 
         if(language != BODY_LANGUAGE_JSON ){
             console.log("Not able to processing language",language);
             return ;
         }
         jsonData = JSON.parse(rawData);
-         jsonObjectToMap(jsonData);
+        jsonObjectToMap(jsonData);
     }
 
     function parseRequestBody(){
         requestBody = pm.request.body;
+        if(request == UNDEFINED){
+            console.log('request body is empty');
+            return;
+        }
         switch (requestBody.mode) {
             case BODY_FORMDATA :
                  parseFormData(requestBody.formdata.all());
