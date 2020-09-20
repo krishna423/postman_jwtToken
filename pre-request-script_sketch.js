@@ -10,7 +10,6 @@
     BODY_FORMDATA               = "formdata",
     BODY_URL_ENCODED            = "urlencoded",
     BODY_RAW                    = "raw",
-    UNDEFINED                   = "undefined",
     isSecretKeyBase64Encoded    = false,
     requstKeysMap               = new Map(),
 
@@ -97,7 +96,7 @@
 
     function parseRequestBody(){
         requestBody = pm.request.body;
-        if(request == UNDEFINED){
+        if(requestBody == undefined ){
             console.log('request body is empty');
             return;
         }
