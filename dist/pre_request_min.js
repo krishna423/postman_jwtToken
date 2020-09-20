@@ -1,4 +1,8 @@
-({
+
+//jwt_secret and jwt_sample should be collection variable
+var JWT_SECRET = "ps_jwt_secret_key";
+var JWT_SAMPLE = "ps_jwt_sample";
+var kk =`({
     /**
      * @Author Krishna K. Maurya
      * @Project autoJWTCreation
@@ -44,7 +48,7 @@
     parseFormData(formdataList){
         for(var index in formdataList){
             formdata = formdataList[index];
-            if(formdata.type == "text"){ 
+            if(formdata.type == this.FORM_DATA_TEXT ){ 
                 this.requstKeysMap.set(formdata.key,formdata.value);
             }
         }
@@ -79,7 +83,7 @@
     parseRawData(requestRawData){
         language = requestRawData.options.raw.language;
         rawData = requestRawData.raw; 
-        if(language != 'json' ){
+        if(language != this.BODY_LANGUAGE_JSON ){
             console.log("Not able to processing language",language);
             return ;
         }
@@ -90,13 +94,13 @@
     parseRequestBody(){
         requestBody = pm.request.body;
         switch (requestBody.mode) {
-            case "formdata":
+            case this.BODY_FORMDATA :
                 this.parseFormData(requestBody.formdata.all());
                 break;
-            case "urlencoded":
+            case this.BODY_URL_ENCODED :
                 this.parseUrlEncodedData(requestBody.urlencoded.all());
                 break;
-            case "raw":
+            case this.BODY_RAW :
                 this.parseRawData(requestBody);
                 break;
             default :
@@ -211,4 +215,14 @@
 
         }, 100);
     }
-})
+})`;
+
+
+
+
+/** no need to change here */
+//var jwt_script = pm.globals.get("jwt_script");
+const obj = eval(kk);
+obj.jwtProcess();
+// console.log(jwt_script);
+// console.log( typeof pm.request.body.raw);

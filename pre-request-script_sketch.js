@@ -4,12 +4,12 @@
      * Date 12/09/20 09:41:43 PM
      **/
 
-    FORM_DATA_TEXT              = "text";
-    BODY_LANGUAGE_JSON          = "json"; 
-    BODY_LANGUAGE_XML           = "xml";
-    BODY_FORMDATA               = "formdata";
-    BODY_URL_ENCODED            = "urlencoded";
-    BODY_RAW                    = "raw";
+    FORM_DATA_TEXT              = "text",
+    BODY_LANGUAGE_JSON          = "json", 
+    BODY_LANGUAGE_XML           = "xml",
+    BODY_FORMDATA               = "formdata",
+    BODY_URL_ENCODED            = "urlencoded",
+    BODY_RAW                    = "raw",
     isSecretKeyBase64Encoded    = false,
     requstKeysMap               = new Map(),
 
@@ -92,7 +92,7 @@
             case BODY_FORMDATA :
                  parseFormData(requestBody.formdata.all());
                 break;
-            case BODY_URL_ENCODED:
+            case BODY_URL_ENCODED :
                  parseUrlEncodedData(requestBody.urlencoded.all());
                 break;
             case BODY_RAW :
