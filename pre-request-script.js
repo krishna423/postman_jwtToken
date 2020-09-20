@@ -135,7 +135,15 @@ function jsonObjectToMap(jsonData) {
 }
 
 function parseRawData(requestRawData){
-    var language = requestRawData.options.raw.language;
+    var language = ""; 
+    try{
+        language = requestRawData.options.raw.language;
+    }
+    catch(err){
+        console.log(err);
+        var header = pm.request.getHeaders();
+        language = header['Content-Type'].split('/')[1];
+    }
     var rawData = requestRawData.raw; 
     if(language != 'json' ){
         console.log("Not able to processing language",language);
@@ -147,6 +155,10 @@ function parseRawData(requestRawData){
 
 function parseRequestBody(){
     var requestBody = pm.request.body;
+    if(request == 'undefined'){
+        console.log('request body is empty');
+        return;
+    }
     switch (requestBody.mode) {
         case "formdata":
             parseFormData(requestBody.formdata.all());
@@ -158,7 +170,7 @@ function parseRequestBody(){
             parseRawData(requestBody);
             break;
         default :
-            console.info("requestBody mode not match"); 
+            console.log("requestBody mode not match"); 
     }
 }
 

@@ -1,0 +1,10 @@
+Hi guys i'm working on a script for postman automatic jwt creation
+
+In our organistan JWT Token is used for S2S call in each request and we always need to create jwt c
+I have always felt like time wasting there is t
+
+
+check-
+1- raw body none retrun
+2- conect-type fetch is optios not available
+3- check all two(jwt_sample secret) is null or not if null throw error
