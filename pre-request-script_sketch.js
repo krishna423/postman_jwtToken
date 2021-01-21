@@ -86,7 +86,7 @@
         }
         catch(err){
             console.log(err);
-            var header = resolvedRequest.getHeaders();
+            var header = pm.request.getHeaders();
             language = header['Content-Type'].split('/')[1];
         }
         rawData = requestRawData.raw; 
@@ -212,19 +212,19 @@
     function jwtProcess(){
         jwt_secret = pm.collectionVariables.get(JWT_SECRET);
         jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
+        newRequest = new sdk.Request(pm.request.toJSON()),
+        resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });     
         setTimeout(function(){
-            newRequest = new sdk.Request(pm.request.toJSON()),
-            resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
-             if(isEmptyObject(resolvedRequest)){
+            if(isEmptyObject(resolvedRequest)){
                  throw new Error('request dynamic param is not resolved yet')
             }
             try{
-            createPrerequisiteMetadata();
+                createPrerequisiteMetadata();
+                [header, payload] = parseJwt(jwt_sample, jwt_secret);
             }catch(err){
                 console.log(err.message);
                 return;
             }
-            [header, payload] = parseJwt(jwt_sample, jwt_secret);
             setTimeout(function(){
                  console.log("New keysMap,",requstKeysMap);
                  payload = createPayloadFromBody(payload);
