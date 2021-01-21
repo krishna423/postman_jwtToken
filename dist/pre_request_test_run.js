@@ -166,6 +166,21 @@ var kk= `({
         return decoded;
     },
 
+    validateInput (){
+        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
+        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
+    
+        
+        if(jwt_sample == undefined){
+            throw new Error("jwt_sample is not exist for key : "+ JWT_SAMPLE);
+        }
+        if(jwt_secret == undefined){
+            throw new Error("jwt_secret is not exist for key : "+ JWT_SECRET);
+        }
+        return [jwt_sample,jwt_secret];
+
+    },
+
 /*---------------------utility---------------------------------------*/
     
     addSignature(unsignedToken,jwt_secret){
@@ -212,8 +227,13 @@ var kk= `({
 /*-------------------------calling funtion--------------------------*/
 
     jwtProcess(){
-        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
-        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
+        try{
+            [jwt_secret, jwt_sample] = this.validateInput();
+        }
+        catch(err){
+            console.log(err.message);
+            return;
+        }
 
         newRequest = new sdk.Request(pm.request.toJSON()),
         resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
@@ -248,8 +268,8 @@ var kk= `({
 
 // @Author Krishna K. Maurya
 //jwt_secret and jwt_sample should be collection variable
-var JWT_SECRET = "jwt_secret_wallet";
-var JWT_SAMPLE = "jwt_sample_wallet";
+var JWT_SECRET = "jwt_secret";
+var JWT_SAMPLE = "jwt_sample";
 
 /** no need to change here */
 var jwt_script = pm.globals.get("jwt_script");
