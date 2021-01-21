@@ -148,8 +148,9 @@ var kk = `({
                         this.requstKeysMap.set(key,parseInt(mapValue))
                     if(typeof payloadJson[key] == 'string')
                         this.requstKeysMap.set(key,mapValue.toString())
-                    if(typeof payloadJson[key] == 'boolean'){ 
+                    if(typeof payloadJson[key] == 'boolean')
                         this.requstKeysMap.set(key,Boolean(mapValue))
+                  
                 }
                      
             }    
