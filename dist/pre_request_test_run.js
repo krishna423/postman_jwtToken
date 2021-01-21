@@ -4,7 +4,8 @@
  * Date 12/09/20 09:41:43 PM
  **/
 
-({
+sdk                             = require('postman-collection')
+var kk= `({
 
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
@@ -241,4 +242,18 @@
             }, 100);
         },100);
     }
-})
+})`
+
+
+
+// @Author Krishna K. Maurya
+//jwt_secret and jwt_sample should be collection variable
+var JWT_SECRET = "jwt_secret_wallet";
+var JWT_SAMPLE = "jwt_sample_wallet";
+
+/** no need to change here */
+var jwt_script = pm.globals.get("jwt_script");
+const obj = eval(kk);
+obj.jwtProcess();
+
+
