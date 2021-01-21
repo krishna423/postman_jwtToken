@@ -1,0 +1,245 @@
+/**
+ * @Author Krishna K. Maurya
+ * @Project autoJWTCreation
+ * Date 12/09/20 09:41:43 PM
+ * release 1.0.1
+ **/
+
+({
+
+    FORM_DATA_TEXT              : "text",
+    BODY_LANGUAGE_JSON          : "json", 
+    BODY_LANGUAGE_XML           : "xml",
+    BODY_FORMDATA               : "formdata",
+    BODY_URL_ENCODED            : "urlencoded",
+    BODY_RAW                    : "raw",
+    isSecretKeyBase64Encoded    : false,
+    requstKeysMap               : new Map(),
+    resolvedRequest             : new Object(),
+
+/*--------------------create map of keyvalue-------------------------*/
+    
+    isEmptyObject(value) {
+         return Object.keys(value).length === 0 && value.constructor === Object;
+    },
+
+    createPayloadFromBody(jsonBody){
+        for(let key of Object.keys(jsonBody)) {
+            if(requstKeysMap.has(key)) {
+                jsonBody[key] = requstKeysMap.get(key);   
+            }    
+        }    
+        return jsonBody;
+    },
+
+    parseRequestHeader(){
+        requestHeaderList = resolvedRequest.header;
+        this.parseKeyValuePairFromList(requestHeaderList);
+    },
+
+    parseRequestQueryParam(){
+        queryParamList = resolvedRequest.url.query;
+        for( var index in queryParamList){
+            queryParamKey =  queryParamList[index].key;
+            queryParamValue = queryParamList[index].value;
+            requstKeysMap.set(queryParamKey,queryParamValue);
+        }
+    },
+
+    parseFormData(formdataList){
+        for(var index in formdataList){
+            formdata = formdataList[index];
+            if(formdata.type == this.FORM_DATA_TEXT ){ 
+                this.requstKeysMap.set(formdata.key,formdata.value);
+            }
+        }
+    },
+
+    parseUrlEncodedData(urlEncodedDataList){
+        this.parseKeyValuePairFromList(urlEncodedDataList);
+    },
+
+    parseKeyValuePairFromList(dataList){
+        for(var index in dataList ){
+            keyValuePair = dataList[index];
+            this.requstKeysMap.set(keyValuePair.key,keyValuePair.value);
+        }
+    },
+
+    jsonObjectToMap(jsonData) {
+        if( Array.isArray(jsonData) ){
+            jsonData = jsonData[0];
+        }
+        for(let k of Object.keys(jsonData)) {
+            if(jsonData[k] instanceof Object) {
+                this.requstKeysMap.set(k, JSON.stringify(jsonData[k]));
+            this.jsonObjectToMap(jsonData[k]);   
+            }
+            else {
+                this.requstKeysMap.set(k, jsonData[k]);
+            }    
+        }
+    },
+
+    parseRawData(requestRawData){
+        var language = ""; 
+            try{
+            language = requestRawData.options.raw.language;
+        }
+        catch(err){
+            console.log(err);
+            var header = pm.request.getHeaders();
+            language = header['Content-Type'].split('/')[1];
+        }
+        rawData = requestRawData.raw; 
+        if(language != this.BODY_LANGUAGE_JSON ){
+            throw new Error("Not able to processing language : " + language + "  Only json is supported right now") ;
+        }
+        jsonData = JSON.parse(rawData);
+        this.jsonObjectToMap(jsonData);
+    },
+
+    parseRequestBody(){
+        requestBody = resolvedRequest.body;
+        if(requestBody == undefined ){
+            console.log('request body is empty');
+            return;
+        }
+        switch (requestBody.mode) {
+            case this.BODY_FORMDATA :
+                this.parseFormData(requestBody.formdata);
+                break;
+            case this.BODY_URL_ENCODED :
+                this.parseUrlEncodedData(requestBody.urlencoded);
+                break;
+            case this.BODY_RAW :
+                this.parseRawData(requestBody);
+                break;
+            default :
+                throw new Error("requestBody mode does not match to supported mode Given mode: " + requestBody.mode +" is not supported right now" );
+        }
+    },
+
+    createPrerequisiteMetadata(){
+        this.parseRequestHeader();
+        this.parseRequestQueryParam();
+        this.parseRequestBody();
+        /*console.log('request map',this.requstKeysMap)*/
+    },
+
+/*-----------------------------parseJwt-----------------------------*/
+
+    parseJwt(token, jwt_secret) {
+        base64Header = token.split('.')[0]; 
+        base64Payload = token.split('.')[1];
+        signature = token.split('.')[2];
+        unsignedToken = base64Header + "." + base64Payload;
+        this.verifyJWT(unsignedToken, signature, jwt_secret);
+        header = Buffer.from(base64Header, 'base64');
+        headerJson = JSON.parse(header);
+        payload = Buffer.from(base64Payload, 'base64');
+        payloadJson = JSON.parse(payload);
+        return [headerJson, payloadJson];
+    },
+
+    verifyJWT(unsignedToken, signature, jwt_secret){
+        calculatedSign = this.addSignature(unsignedToken, jwt_secret);
+        if(calculatedSign == signature){
+            this.isSecretKeyBase64Encoded = false;
+        } else{
+            decoded = this.base64decoder(jwt_secret);
+            calculatedSign = this.addSignature(unsignedToken, decoded);
+            if(calculatedSign == signature){
+                this.isSecretKeyBase64Encoded = true ;
+            }
+            else{
+                console.log("Invalid jwt");
+                return;
+            }
+        }
+        console.log("is base64 encoded secret ", this.isSecretKeyBase64Encoded);
+    },        
+
+    base64decoder(base64){
+        words = CryptoJS.enc.Base64.parse(base64);
+        decoded = CryptoJS.enc.Utf8.stringify(words);
+        return decoded;
+    },
+
+/*---------------------utility---------------------------------------*/
+    
+    addSignature(unsignedToken,jwt_secret){
+        return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
+    },
+    
+    base64url(source) {
+        encodedSource = CryptoJS.enc.Base64.stringify(source);
+        encodedSource = encodedSource.split('=').join('');
+        encodedSource = encodedSource.split('+').join('-');
+        encodedSource = encodedSource.split('/').join('_');
+        return encodedSource;
+    },
+
+/*---------------------create jwt--------------------------------*/
+    
+    createJwt(header, payload, jwt_secret){
+        /*console.log("new jwt:-",header, payload);*/
+        encodedHeader = this.encodingData(header); 
+        encodedPayload = this.encodingData(payload);
+        unsignedToken = encodedHeader + "." + encodedPayload;
+        if(this.isSecretKeyBase64Encoded)
+            jwt_secret = this.base64decoder(jwt_secret);
+        jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret);
+        console.log("New jwt token :", jwtToken);
+        pm.globals.set("jwt_token", jwtToken);
+    },
+
+    encodingData(jsonData){
+        stringifiedData = CryptoJS.enc.Utf8.parse(JSON.stringify(jsonData));
+        encodedData = this.base64url(stringifiedData);
+        return encodedData;
+    },
+    
+    createPayloadFromBody(jsonBody){
+        for(let key of Object.keys(jsonBody)) {
+            if(this.requstKeysMap.has(key)) {
+                jsonBody[key] = this.requstKeysMap.get(key);   
+            }    
+        }    
+        return jsonBody;
+    },
+
+/*-------------------------calling funtion--------------------------*/
+
+    jwtProcess(){
+        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
+        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
+
+        newRequest = new sdk.Request(pm.request.toJSON()),
+        resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
+        thisObj = this;
+        setTimeout(function(){
+            if(thisObj.isEmptyObject(resolvedRequest)){
+                 throw new Error('request dynamic param is not resolved yet')
+            }
+            //console.log(resolvedRequest);
+            try{
+                thisObj.createPrerequisiteMetadata();
+                [header, payload] = thisObj.parseJwt(jwt_sample, jwt_secret);
+            }catch(err){
+                console.log(err.message);
+                return;
+            }
+        
+            setTimeout(function(){
+                console.log("New keysMap,",thisObj.requstKeysMap);
+                payload = thisObj.createPayloadFromBody(payload);
+                setTimeout(function(){
+                    console.log("New header payload",header,payload);
+                    thisObj.createJwt(header,payload, jwt_secret); 
+                }, 100);
+
+            }, 100);
+        },100);
+    }
+})
