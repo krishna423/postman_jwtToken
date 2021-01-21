@@ -1,10 +1,4 @@
 ({
-    /**
-     * @Author Krishna K. Maurya
-     * @Project autoJWTCreation
-     * Date 12/09/20 09:41:43 PM
-     **/
-
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
     BODY_LANGUAGE_XML           : "xml",
@@ -13,9 +7,14 @@
     BODY_RAW                    : "raw",
     isSecretKeyBase64Encoded    : false,
     requstKeysMap               : new Map(),
+    resolvedRequest             : new Object(),
 
 /*--------------------create map of keyvalue-------------------------*/
     
+    isEmptyObject(value) {
+         return Object.keys(value).length === 0 && value.constructor === Object;
+    },
+
     createPayloadFromBody(jsonBody){
         for(let key of Object.keys(jsonBody)) {
             if(requstKeysMap.has(key)) {
@@ -26,18 +25,16 @@
     },
 
     parseRequestHeader(){
-        requestHeaderList = pm.request.headers.all();
+        requestHeaderList = resolvedRequest.header;
         this.parseKeyValuePairFromList(requestHeaderList);
     },
 
     parseRequestQueryParam(){
-        queryParamString = pm.request.url.getQueryString();
-        if(!queryParamString)
-            return;
-        queryParamList = queryParamString.split('&');
+        queryParamList = resolvedRequest.url.query;
         for( var index in queryParamList){
-            queryParam =  queryParamList[index].split(/=(.+)/);
-            this.requstKeysMap.set(queryParam[0],queryParam[1]);    
+            queryParamKey =  queryParamList[index].key;
+            queryParamValue = queryParamList[index].value;
+            requstKeysMap.set(queryParamKey,queryParamValue);
         }
     },
 
@@ -88,31 +85,30 @@
         }
         rawData = requestRawData.raw; 
         if(language != this.BODY_LANGUAGE_JSON ){
-            console.log("Not able to processing language",language);
-            return ;
+            throw new Error("Not able to processing language : " + language + "  Only json is supported right now") ;
         }
         jsonData = JSON.parse(rawData);
         this.jsonObjectToMap(jsonData);
     },
 
     parseRequestBody(){
-        requestBody = pm.request.body;
+        requestBody = resolvedRequest.body;
         if(requestBody == undefined ){
             console.log('request body is empty');
             return;
         }
         switch (requestBody.mode) {
             case this.BODY_FORMDATA :
-                this.parseFormData(requestBody.formdata.all());
+                this.parseFormData(requestBody.formdata);
                 break;
             case this.BODY_URL_ENCODED :
-                this.parseUrlEncodedData(requestBody.urlencoded.all());
+                this.parseUrlEncodedData(requestBody.urlencoded);
                 break;
             case this.BODY_RAW :
                 this.parseRawData(requestBody);
                 break;
             default :
-                console.info("requestBody mode not match"); 
+                throw new Error("requestBody mode does not match to supported mode Given mode: " + requestBody.mode +" is not supported right now" );
         }
     },
 
@@ -210,17 +206,32 @@
     jwtProcess(){
         jwt_secret = pm.collectionVariables.get(JWT_SECRET);
         jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
-        this.createPrerequisiteMetadata();
-        [header, payload] = this.parseJwt(jwt_sample, jwt_secret);
+
+        newRequest = new sdk.Request(pm.request.toJSON()),
+        resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
         thisObj = this;
         setTimeout(function(){
-            console.log("New keysMap,",thisObj.requstKeysMap);
-            payload = thisObj.createPayloadFromBody(payload);
+            if(thisObj.isEmptyObject(resolvedRequest)){
+                 throw new Error('request dynamic param is not resolved yet')
+            }
+            //console.log(resolvedRequest);
+            try{
+                thisObj.createPrerequisiteMetadata();
+                [header, payload] = thisObj.parseJwt(jwt_sample, jwt_secret);
+            }catch(err){
+                console.log(err.message);
+                return;
+            }
+        
             setTimeout(function(){
-                console.log("New header payload",header,payload);
-                thisObj.createJwt(header,payload, jwt_secret); 
-            }, 100);
+                console.log("New keysMap,",thisObj.requstKeysMap);
+                payload = thisObj.createPayloadFromBody(payload);
+                setTimeout(function(){
+                    console.log("New header payload",header,payload);
+                    thisObj.createJwt(header,payload, jwt_secret); 
+                }, 100);
 
-        }, 100);
+            }, 100);
+        },100);
     }
 })
