@@ -3,7 +3,7 @@
      * @Project autoJWTCreation
      * Date 12/09/20 09:41:43 PM
      **/
-
+    sdk                         = require('postman-collection'),
     FORM_DATA_TEXT              = "text",
     BODY_LANGUAGE_JSON          = "json", 
     BODY_LANGUAGE_XML           = "xml",
@@ -12,9 +12,15 @@
     BODY_RAW                    = "raw",
     isSecretKeyBase64Encoded    = false,
     requstKeysMap               = new Map(),
+    resolvedRequest             = new Object();
+    
 
 /*--------------------create map of keyvalue-------------------------*/
-    
+   
+    function isEmptyObject(value) {
+         return Object.keys(value).length === 0 && value.constructor === Object;
+    }
+
     function createPayloadFromBody(jsonBody){
         for(let key of Object.keys(jsonBody)) {
             if(requstKeysMap.has(key)) {
@@ -25,18 +31,16 @@
     }
 
     function parseRequestHeader(){
-        requestHeaderList = pm.request.headers.all();
-         parseKeyValuePairFromList(requestHeaderList);
+        requestHeaderList = resolvedRequest.header;
+        parseKeyValuePairFromList(requestHeaderList);
     }
 
     function parseRequestQueryParam(){
-        queryParamString = pm.request.url.getQueryString();
-        if(!queryParamString)
-            return;
-        queryParamList = queryParamString.split('&');
+        queryParamList = resolvedRequest.url.query;
         for( var index in queryParamList){
-            queryParam =  queryParamList[index].split(/=(.+)/);
-             requstKeysMap.set(queryParam[0],queryParam[1]);    
+            queryParamKey =  queryParamList[index].key;
+            queryParamValue = queryParamList[index].value;
+            requstKeysMap.set(queryParamKey,queryParamValue);    
         }
     }
 
@@ -82,36 +86,35 @@
         }
         catch(err){
             console.log(err);
-            var header = pm.request.getHeaders();
+            var header = resolvedRequest.getHeaders();
             language = header['Content-Type'].split('/')[1];
         }
         rawData = requestRawData.raw; 
         if(language != BODY_LANGUAGE_JSON ){
-            console.log("Not able to processing language",language);
-            return ;
+            throw new Error("Not able to processing language : " + language + "  Only json is supported right now") ;
         }
         jsonData = JSON.parse(rawData);
         jsonObjectToMap(jsonData);
     }
 
     function parseRequestBody(){
-        requestBody = pm.request.body;
+        requestBody = resolvedRequest.body;
         if(requestBody == undefined ){
             console.log('request body is empty');
             return;
         }
         switch (requestBody.mode) {
             case BODY_FORMDATA :
-                 parseFormData(requestBody.formdata.all());
+                parseFormData(requestBody.formdata);
                 break;
             case BODY_URL_ENCODED :
-                 parseUrlEncodedData(requestBody.urlencoded.all());
+                 parseUrlEncodedData(requestBody.urlencoded);
                 break;
             case BODY_RAW :
                  parseRawData(requestBody);
                 break;
             default :
-                console.info("requestBody mode not match"); 
+                throw new Error("requestBody mode does not match to supported mode Given mode: " + requestBody.mode +" is not supported right now" );
         }
     }
 
@@ -209,20 +212,32 @@
     function jwtProcess(){
         jwt_secret = pm.collectionVariables.get(JWT_SECRET);
         jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
-        createPrerequisiteMetadata();
-        [header, payload] = parseJwt(jwt_sample, jwt_secret);
         setTimeout(function(){
-            console.log("New keysMap,",requstKeysMap);
-            payload = createPayloadFromBody(payload);
+            newRequest = new sdk.Request(pm.request.toJSON()),
+            resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
+             if(isEmptyObject(resolvedRequest)){
+                 throw new Error('request dynamic param is not resolved yet')
+            }
+            try{
+            createPrerequisiteMetadata();
+            }catch(err){
+                console.log(err.message);
+                return;
+            }
+            [header, payload] = parseJwt(jwt_sample, jwt_secret);
             setTimeout(function(){
-                console.log("New header payload",header,payload);
-                createJwt(header,payload, jwt_secret); 
-            }, 100);
+                 console.log("New keysMap,",requstKeysMap);
+                 payload = createPayloadFromBody(payload);
+                 setTimeout(function(){
+                     console.log("New header payload",header,payload);
+                     createJwt(header,payload, jwt_secret); 
+                 }, 100);
 
-        }, 100);
+             }, 100);
+        },100);
     }
 
 // //jwt_secret and jwt_sample should be collection variable
-var JWT_SECRET = "ps_jwt_secret_key";
-var JWT_SAMPLE = "ps_jwt_sample";
+ var JWT_SECRET = "jwt_secret_wallet";
+ var JWT_SAMPLE = "jwt_sample_wallet";
 jwtProcess();
