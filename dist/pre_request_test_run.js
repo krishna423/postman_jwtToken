@@ -42,7 +42,7 @@ var kk= `({
         for( var index in queryParamList){
             queryParamKey =  queryParamList[index].key;
             queryParamValue = queryParamList[index].value;
-            requstKeysMap.set(queryParamKey,queryParamValue);
+            this.requstKeysMap.set(queryParamKey,queryParamValue);
         }
     },
 
