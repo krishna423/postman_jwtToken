@@ -4,8 +4,8 @@
  * Date 12/09/20 09:41:43 PM
  **/
 
-sdk                             = require('postman-collection')
-var kk= `({
+sdk = require('postman-collection')
+var kk = `({
 
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
@@ -134,21 +134,36 @@ var kk= `({
         base64Payload = token.split('.')[1];
         signature = token.split('.')[2];
         unsignedToken = base64Header + "." + base64Payload;
-        this.verifyJWT(unsignedToken, signature, jwt_secret);
         header = Buffer.from(base64Header, 'base64');
         headerJson = JSON.parse(header);
+        this.verifyJWT(unsignedToken, signature, jwt_secret,headerJson.alg);
         payload = Buffer.from(base64Payload, 'base64');
         payloadJson = JSON.parse(payload);
+        for(let key of Object.keys(payloadJson)) {
+            if(this.requstKeysMap.has(key)) {
+                mapValue = this.requstKeysMap.get(key);
+                if(typeof mapValue != typeof payloadJson[key]){
+                     console.log(typeof payloadJson[key])
+                    if(typeof payloadJson[key] == 'number')
+                        this.requstKeysMap.set(key,parseInt(mapValue))
+                    if(typeof payloadJson[key] == 'string')
+                        this.requstKeysMap.set(key,mapValue.toString())
+                    if(typeof payloadJson[key] == 'boolean'){ 
+                        this.requstKeysMap.set(key,Boolean(mapValue))
+                }
+                     
+            }    
+        } 
         return [headerJson, payloadJson];
     },
 
-    verifyJWT(unsignedToken, signature, jwt_secret){
-        calculatedSign = this.addSignature(unsignedToken, jwt_secret);
+    verifyJWT(unsignedToken, signature, jwt_secret, alg){
+        calculatedSign = this.addSignature(unsignedToken, jwt_secret,alg);
         if(calculatedSign == signature){
             this.isSecretKeyBase64Encoded = false;
         } else{
             decoded = this.base64decoder(jwt_secret);
-            calculatedSign = this.addSignature(unsignedToken, decoded);
+            calculatedSign = this.addSignature(unsignedToken, decoded,alg);
             if(calculatedSign == signature){
                 this.isSecretKeyBase64Encoded = true ;
             }
@@ -166,10 +181,33 @@ var kk= `({
         return decoded;
     },
 
+    validateInput (){
+        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
+        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
+    
+        
+        if(jwt_sample == undefined){
+            throw new Error("jwt_sample is not exist for key : "+ JWT_SAMPLE);
+        }
+        if(jwt_secret == undefined){
+            throw new Error("jwt_secret is not exist for key : "+ JWT_SECRET);
+        }
+        return { "jwt_sample" : jwt_sample, "jwt_secret" : jwt_secret };
+
+    },
+
 /*---------------------utility---------------------------------------*/
     
-    addSignature(unsignedToken,jwt_secret){
-        return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
+    addSignature(unsignedToken,jwt_secret,alg){
+        //console.log(alg)
+        if(alg === "HS256")
+            return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
+        else if(alg === "HS512")
+            return this.base64url(CryptoJS.HmacSHA512(unsignedToken, jwt_secret));
+        else{
+            throw new Error("Algo is not supported  :" + alg);
+        } 
+
     },
     
     base64url(source) {
@@ -189,7 +227,7 @@ var kk= `({
         unsignedToken = encodedHeader + "." + encodedPayload;
         if(this.isSecretKeyBase64Encoded)
             jwt_secret = this.base64decoder(jwt_secret);
-        jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret);
+        jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret,header.alg);
         console.log("New jwt token :", jwtToken);
         pm.globals.set("jwt_token", jwtToken);
     },
@@ -212,8 +250,16 @@ var kk= `({
 /*-------------------------calling funtion--------------------------*/
 
     jwtProcess(){
-        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
-        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
+        
+        try{
+            jwt_metaData = this.validateInput();
+            jwt_sample = jwt_metaData.jwt_sample;
+            jwt_secret = jwt_metaData.jwt_secret;
+        }
+        catch(err){
+            console.log(err.message);
+            return;
+        }
 
         newRequest = new sdk.Request(pm.request.toJSON()),
         resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
@@ -248,8 +294,8 @@ var kk= `({
 
 // @Author Krishna K. Maurya
 //jwt_secret and jwt_sample should be collection variable
-var JWT_SECRET = "jwt_secret_wallet";
-var JWT_SAMPLE = "jwt_sample_wallet";
+var JWT_SECRET = "jwt_secret";
+var JWT_SAMPLE = "jwt_sample";
 
 /** no need to change here */
 var jwt_script = pm.globals.get("jwt_script");
