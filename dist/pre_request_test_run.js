@@ -4,8 +4,8 @@
  * Date 12/09/20 09:41:43 PM
  **/
 
-sdk                             = require('postman-collection')
-var kk= `({
+sdk = require('postman-collection')
+var kk = `({
 
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
@@ -139,6 +139,21 @@ var kk= `({
         this.verifyJWT(unsignedToken, signature, jwt_secret,headerJson.alg);
         payload = Buffer.from(base64Payload, 'base64');
         payloadJson = JSON.parse(payload);
+        for(let key of Object.keys(payloadJson)) {
+            if(this.requstKeysMap.has(key)) {
+                mapValue = this.requstKeysMap.get(key);
+                if(typeof mapValue != typeof payloadJson[key]){
+                     console.log(typeof payloadJson[key])
+                    if(typeof payloadJson[key] == 'number')
+                        this.requstKeysMap.set(key,parseInt(mapValue))
+                    if(typeof payloadJson[key] == 'string')
+                        this.requstKeysMap.set(key,mapValue.toString())
+                    if(typeof payloadJson[key] == 'boolean'){ 
+                        this.requstKeysMap.set(key,Boolean(mapValue))
+                }
+                     
+            }    
+        } 
         return [headerJson, payloadJson];
     },
 
