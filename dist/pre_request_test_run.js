@@ -177,7 +177,7 @@ var kk= `({
         if(jwt_secret == undefined){
             throw new Error("jwt_secret is not exist for key : "+ JWT_SECRET);
         }
-        return [jwt_sample,jwt_secret];
+        return { "jwt_sample" : jwt_sample, "jwt_secret" : jwt_secret };
 
     },
 
@@ -227,8 +227,11 @@ var kk= `({
 /*-------------------------calling funtion--------------------------*/
 
     jwtProcess(){
+        
         try{
-            [jwt_secret, jwt_sample] = this.validateInput();
+            jwt_metaData = this.validateInput();
+            jwt_sample = jwt_metaData.jwt_sample;
+            jwt_secret = jwt_metaData.jwt_secret;
         }
         catch(err){
             console.log(err.message);
