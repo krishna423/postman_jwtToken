@@ -1,8 +1,8 @@
 /**
  * @Author Krishna K. Maurya
  * @Project autoJWTCreation
- * Date 12/09/20 09:41:43 PM
- * release 1.0.1
+ * Date 04/05/21 09:41:43 PM
+ * release 2.0.0
  **/
 
 ({
