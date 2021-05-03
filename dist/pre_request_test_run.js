@@ -136,7 +136,6 @@ var kk = `({
         unsignedToken = base64Header + "." + base64Payload;
         header = Buffer.from(base64Header, 'base64');
         headerJson = JSON.parse(header);
-        this.verifyJWT(unsignedToken, signature, jwt_secret,headerJson.alg);
         payload = Buffer.from(base64Payload, 'base64');
         payloadJson = JSON.parse(payload);
         for(let key of Object.keys(payloadJson)) {
@@ -156,25 +155,7 @@ var kk = `({
             }    
         } 
         return [headerJson, payloadJson];
-    },
-
-    verifyJWT(unsignedToken, signature, jwt_secret, alg){
-        calculatedSign = this.addSignature(unsignedToken, jwt_secret,alg);
-        if(calculatedSign == signature){
-            this.isSecretKeyBase64Encoded = false;
-        } else{
-            decoded = this.base64decoder(jwt_secret);
-            calculatedSign = this.addSignature(unsignedToken, decoded,alg);
-            if(calculatedSign == signature){
-                this.isSecretKeyBase64Encoded = true ;
-            }
-            else{
-                console.log("Invalid jwt");
-                return;
-            }
-        }
-        console.log("is base64 encoded secret ", this.isSecretKeyBase64Encoded);
-    },        
+    },     
 
     base64decoder(base64){
         words = CryptoJS.enc.Base64.parse(base64);
@@ -193,8 +174,21 @@ var kk = `({
         if(jwt_secret == undefined){
             throw new Error("jwt_secret is not exist for key : "+ JWT_SECRET);
         }
+        this.isSecretKeyBase64Encoded();
+
         return { "jwt_sample" : jwt_sample, "jwt_secret" : jwt_secret };
 
+    },
+
+    isSecretKeyBase64Encoded(){
+        try{
+            if(BASE_64_ENCODED)
+                isSecretKeyBase64Encoded = true;
+            console.log("Secret is base64 encoded : ", BASE_64_ENCODED);
+        }catch(err){
+             console.log("Secret is not base64 encoded");
+        }
+        
     },
 
 /*---------------------utility---------------------------------------*/
@@ -297,7 +291,7 @@ var kk = `({
 //jwt_secret and jwt_sample should be collection variable
 var JWT_SECRET = "jwt_secret";
 var JWT_SAMPLE = "jwt_sample";
-
+var BASE_64_ENCODED = true;
 /** no need to change here */
 var jwt_script = pm.globals.get("jwt_script");
 const obj = eval(kk);
