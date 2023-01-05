@@ -173,13 +173,25 @@ var k=({
         return encodedData;
     },
     
-    createPayloadFromBody(jsonBody){
-        for(let key of Object.keys(jsonBody)) {
+    createPayloadFromBody(payloadJson){
+        for(let key of Object.keys(payloadJson)) {
             if(this.requstKeysMap.has(key)) {
-                jsonBody[key] = this.requstKeysMap.get(key);   
+                mapValue = this.requstKeysMap.get(key);
+                if(typeof mapValue == typeof payloadJson[key]){
+                    payloadJson[key] = this.requstKeysMap.get(key);   
+                }else{
+                     console.log("JWT and request param type mismatch, trying to convert from ",  typeof mapValue, "to " , typeof payloadJson[key])
+                    if(typeof payloadJson[key] == 'number')
+                        payloadJson[key]=parseInt(mapValue);
+                    if(typeof payloadJson[key] == 'string')
+                        payloadJson[key]=mapValue.toString();
+                    if(typeof payloadJson[key] == 'boolean')
+                        payloadJson[key]=Boolean(mapValue);
+                }
+                  
             }    
-        }    
-        return jsonBody;
+        }
+        return payloadJson;
     },
 
 
@@ -243,29 +255,3 @@ var JWT_SECRET = "jwt_secret";
 var JWT_SAMPLE = "jwt_sample";
 sdk = require('postman-collection')
 k.jwtProcess()
-
-
-
-
-
-
-
-
-
-
-        // for(let key of Object.keys(payloadJson)) {
-        //     if(this.requstKeysMap.has(key)) {
-        //         mapValue = this.requstKeysMap.get(key);
-        //         if(typeof mapValue != typeof payloadJson[key]){
-        //              console.log(typeof payloadJson[key])
-        //             if(typeof payloadJson[key] == 'number')
-        //                 this.requstKeysMap.set(key,parseInt(mapValue))
-        //             if(typeof payloadJson[key] == 'string')
-        //                 this.requstKeysMap.set(key,mapValue.toString())
-        //             if(typeof payloadJson[key] == 'boolean')
-        //                 this.requstKeysMap.set(key,Boolean(mapValue))
-                  
-        //         }
-                     
-        //     }    
-        // } 
