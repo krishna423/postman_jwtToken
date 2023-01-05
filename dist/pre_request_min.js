@@ -192,14 +192,14 @@ var k=({
 
     getJwtKeys (){
 
-        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
-        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
+        jwtSample = pm.collectionVariables.get(JWT_SAMPLE);
+        jwtSecret = pm.collectionVariables.get(JWT_SECRET);
     
-        if(jwt_sample === undefined || jwt_secret === undefined){
-            console.log("Invalid jwt_metaData, fetched jwt_sample value = " , + jwt_sample +"and jwt_secret key = " + jwt_secret);
+        if(jwtSample === undefined || jwtSecret === undefined){
+            console.log("Invalid jwt_metaData, fetched jwtSample value = " , + jwtSample +"and jwtSecret key = " + jwtSecret);
             return undefined;
         }
-        return { "jwt_sample" : jwt_sample, "jwt_secret" : jwt_secret };
+        return { "jwtSample" : jwtSample, "jwtSecret" : jwtSecret };
     },
 
 
@@ -209,7 +209,7 @@ var k=({
     jwtProcess(){
         
         jwtKeys = this.getJwtKeys();
-        jwtParsedData = this.parseJwt(jwtKeys.jwt_sample);
+        jwtParsedData = this.parseJwt(jwtKeys.jwtSample);
         if(jwtKeys == undefined || jwtParsedData == undefined )
             return;
 
@@ -230,7 +230,7 @@ var k=({
                 payload = thisObj.createPayloadFromBody(jwtParsedData.payload);
                 setTimeout(function(){
                     console.log("New header payload",jwtParsedData.header,payload);
-                    thisObj.createJwt(jwtParsedData.header,payload, jwt_secret); 
+                    thisObj.createJwt(jwtParsedData.header,payload, jwtSecret); 
                 }, 100);
 
             }, 100);
