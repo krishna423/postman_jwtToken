@@ -15,10 +15,27 @@ var k=({
     requstKeysMap               : new Map(),
     resolvedRequest             : new Object(),
 
-/*--------------------create map of keyvalue-------------------------*/
+
+/*---------------------utility---------------------------------------*/
     
-    isEmptyObject(value) {
-         return Object.keys(value).length === 0 && value.constructor === Object;
+    addSignature(unsignedToken,jwt_secret,alg){
+        //console.log(alg)
+        if(alg === "HS256")
+            return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
+        else if(alg === "HS512")
+            return this.base64url(CryptoJS.HmacSHA512(unsignedToken, jwt_secret));
+        else{
+            throw new Error("Algo is not supported  :" + alg);
+        } 
+
+    },
+    
+    base64url(source) {
+        encodedSource = CryptoJS.enc.Base64.stringify(source);
+        encodedSource = encodedSource.split('=').join('');
+        encodedSource = encodedSource.split('+').join('-');
+        encodedSource = encodedSource.split('/').join('_');
+        return encodedSource;
     },
 
     parseKeyValuePairFromList(dataList){
@@ -28,14 +45,23 @@ var k=({
         }
     },
 
-    createPayloadFromBody(jsonBody){
-        for(let key of Object.keys(jsonBody)) {
-            if(requstKeysMap.has(key)) {
-                jsonBody[key] = requstKeysMap.get(key);   
+    jsonObjectToMap(jsonData) {
+        if( Array.isArray(jsonData) ){
+            jsonData = jsonData[0];
+        }
+        for(let k of Object.keys(jsonData)) {
+            if(jsonData[k] instanceof Object) {
+                this.requstKeysMap.set(k, JSON.stringify(jsonData[k]));
+            this.jsonObjectToMap(jsonData[k]);   
+            }
+            else {
+                this.requstKeysMap.set(k, jsonData[k]);
             }    
-        }    
-        return jsonBody;
+        }
     },
+
+
+/*--------------------create map of keyvalue-------------------------*/
 
     parseRequestHeader(){
         requestHeaderList = resolvedRequest.header;
@@ -62,23 +88,6 @@ var k=({
 
     parseUrlEncodedData(urlEncodedDataList){
         this.parseKeyValuePairFromList(urlEncodedDataList);
-    },
-
-
-
-    jsonObjectToMap(jsonData) {
-        if( Array.isArray(jsonData) ){
-            jsonData = jsonData[0];
-        }
-        for(let k of Object.keys(jsonData)) {
-            if(jsonData[k] instanceof Object) {
-                this.requstKeysMap.set(k, JSON.stringify(jsonData[k]));
-            this.jsonObjectToMap(jsonData[k]);   
-            }
-            else {
-                this.requstKeysMap.set(k, jsonData[k]);
-            }    
-        }
     },
 
     parseRawData(requestRawData){
@@ -120,7 +129,7 @@ var k=({
         }
     },
 
-    createPrerequisiteMetadata(){
+    parseRequestMetadata(){
         this.parseRequestHeader();
         this.parseRequestQueryParam();
         this.parseRequestBody();
@@ -129,57 +138,22 @@ var k=({
 
 /*-----------------------------parseJwt-----------------------------*/
 
-    parseJwt(token, jwt_secret) {
-        base64Header = token.split('.')[0]; 
-        base64Payload = token.split('.')[1];
-        signature = token.split('.')[2];
-        unsignedToken = base64Header + "." + base64Payload;
-        header = Buffer.from(base64Header, 'base64');
-        headerJson = JSON.parse(header);
-        payload = Buffer.from(base64Payload, 'base64');
-        payloadJson = JSON.parse(payload);
-        for(let key of Object.keys(payloadJson)) {
-            if(this.requstKeysMap.has(key)) {
-                mapValue = this.requstKeysMap.get(key);
-                if(typeof mapValue != typeof payloadJson[key]){
-                     console.log(typeof payloadJson[key])
-                    if(typeof payloadJson[key] == 'number')
-                        this.requstKeysMap.set(key,parseInt(mapValue))
-                    if(typeof payloadJson[key] == 'string')
-                        this.requstKeysMap.set(key,mapValue.toString())
-                    if(typeof payloadJson[key] == 'boolean')
-                        this.requstKeysMap.set(key,Boolean(mapValue))
-                  
-                }
-                     
-            }    
-        } 
-        return [headerJson, payloadJson];
+    parseJwt(token) {
+        if(token == undefined)
+            return undefined;
+        
+        tokenparts = token.split('.'); 
+        if(tokenparts.length != 3){
+            console.log("Invalid token format")
+            return undefined;
+        }
+
+        headerJson = JSON.parse( Buffer.from(tokenparts[0], 'base64'));
+        payloadJson = JSON.parse(Buffer.from(tokenparts[1], 'base64'));
+
+        return { "header" : headerJson, "payload" : payloadJson };
     },     
     
-
-
-/*---------------------utility---------------------------------------*/
-    
-    addSignature(unsignedToken,jwt_secret,alg){
-        //console.log(alg)
-        if(alg === "HS256")
-            return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
-        else if(alg === "HS512")
-            return this.base64url(CryptoJS.HmacSHA512(unsignedToken, jwt_secret));
-        else{
-            throw new Error("Algo is not supported  :" + alg);
-        } 
-
-    },
-    
-    base64url(source) {
-        encodedSource = CryptoJS.enc.Base64.stringify(source);
-        encodedSource = encodedSource.split('=').join('');
-        encodedSource = encodedSource.split('+').join('-');
-        encodedSource = encodedSource.split('/').join('_');
-        return encodedSource;
-    },
 
 /*---------------------create jwt--------------------------------*/
     
@@ -208,6 +182,9 @@ var k=({
         return jsonBody;
     },
 
+
+/*---------------------validate prerequisite--------------------------------*/
+
     getResolvedRequest(){
         newRequest = new sdk.Request(pm.request.toJSON());
         return newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
@@ -222,7 +199,6 @@ var k=({
             console.log("Invalid jwt_metaData, fetched jwt_sample value = " , + jwt_sample +"and jwt_secret key = " + jwt_secret);
             return undefined;
         }
-    
         return { "jwt_sample" : jwt_sample, "jwt_secret" : jwt_secret };
     },
 
@@ -232,27 +208,29 @@ var k=({
 
     jwtProcess(){
         
-        jwt_metaData = this.getJwtKeys();
-        if(jwt_metaData == undefined)
+        jwtKeys = this.getJwtKeys();
+        jwtParsedData = this.parseJwt(jwtKeys.jwt_sample);
+        if(jwtKeys == undefined || jwtParsedData == undefined )
             return;
+
         resolvedRequest = this.getResolvedRequest();
         thisObj = this;
-
         setTimeout(function(){
             try{
-                thisObj.createPrerequisiteMetadata();
-                [header, payload] = thisObj.parseJwt(jwt_sample, jwt_secret);
+                thisObj.parseRequestMetadata();
             }catch(err){
                 console.log(err.message);
                 return;
             }
         
             setTimeout(function(){
-                console.log("New keysMap,",thisObj.requstKeysMap);
-                payload = thisObj.createPayloadFromBody(payload);
+                console.log("New keysMap : ",thisObj.requstKeysMap);
+                console.log("Parsed JWT : ",jwtParsedData);
+
+                payload = thisObj.createPayloadFromBody(jwtParsedData.payload);
                 setTimeout(function(){
-                    console.log("New header payload",header,payload);
-                    thisObj.createJwt(header,payload, jwt_secret); 
+                    console.log("New header payload",jwtParsedData.header,payload);
+                    thisObj.createJwt(jwtParsedData.header,payload, jwt_secret); 
                 }, 100);
 
             }, 100);
@@ -265,3 +243,29 @@ var JWT_SECRET = "jwt_secret";
 var JWT_SAMPLE = "jwt_sample";
 sdk = require('postman-collection')
 k.jwtProcess()
+
+
+
+
+
+
+
+
+
+
+        // for(let key of Object.keys(payloadJson)) {
+        //     if(this.requstKeysMap.has(key)) {
+        //         mapValue = this.requstKeysMap.get(key);
+        //         if(typeof mapValue != typeof payloadJson[key]){
+        //              console.log(typeof payloadJson[key])
+        //             if(typeof payloadJson[key] == 'number')
+        //                 this.requstKeysMap.set(key,parseInt(mapValue))
+        //             if(typeof payloadJson[key] == 'string')
+        //                 this.requstKeysMap.set(key,mapValue.toString())
+        //             if(typeof payloadJson[key] == 'boolean')
+        //                 this.requstKeysMap.set(key,Boolean(mapValue))
+                  
+        //         }
+                     
+        //     }    
+        // } 
