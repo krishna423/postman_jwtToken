@@ -12,7 +12,6 @@ var k=({
     BODY_FORMDATA               : "formdata",
     BODY_URL_ENCODED            : "urlencoded",
     BODY_RAW                    : "raw",
-    isSecretKeyBase64Encoded    : false,
     requstKeysMap               : new Map(),
     resolvedRequest             : new Object(),
 
@@ -20,6 +19,13 @@ var k=({
     
     isEmptyObject(value) {
          return Object.keys(value).length === 0 && value.constructor === Object;
+    },
+
+    parseKeyValuePairFromList(dataList){
+        for(var index in dataList ){
+            keyValuePair = dataList[index];
+            this.requstKeysMap.set(keyValuePair.key,keyValuePair.value);
+        }
     },
 
     createPayloadFromBody(jsonBody){
@@ -58,12 +64,7 @@ var k=({
         this.parseKeyValuePairFromList(urlEncodedDataList);
     },
 
-    parseKeyValuePairFromList(dataList){
-        for(var index in dataList ){
-            keyValuePair = dataList[index];
-            this.requstKeysMap.set(keyValuePair.key,keyValuePair.value);
-        }
-    },
+
 
     jsonObjectToMap(jsonData) {
         if( Array.isArray(jsonData) ){
@@ -155,40 +156,8 @@ var k=({
         } 
         return [headerJson, payloadJson];
     },     
-
-    base64decoder(base64){
-        words = CryptoJS.enc.Base64.parse(base64);
-        decoded = CryptoJS.enc.Utf8.stringify(words);
-        return decoded;
-    },
-
-    validateInput (){
-        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
-        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
     
-        
-        if(jwt_sample == undefined){
-            throw new Error("jwt_sample is not exist for key : "+ JWT_SAMPLE);
-        }
-        if(jwt_secret == undefined){
-            throw new Error("jwt_secret is not exist for key : "+ JWT_SECRET);
-        }
-        this.isSecretKeyBase64Encoded();
-        
-        return { "jwt_sample" : jwt_sample, "jwt_secret" : jwt_secret };
 
-    },
-
-    isSecretKeyBase64Encoded(){
-        try{
-            if(BASE_64_ENCODED)
-                isSecretKeyBase64Encoded = true;
-            console.log("Secret is base64 encoded : ", BASE_64_ENCODED);
-        }catch(err){
-             console.log("Secret is not base64 encoded");
-        }
-        
-    },
 
 /*---------------------utility---------------------------------------*/
     
@@ -219,8 +188,6 @@ var k=({
         encodedHeader = this.encodingData(header); 
         encodedPayload = this.encodingData(payload);
         unsignedToken = encodedHeader + "." + encodedPayload;
-        if(this.isSecretKeyBase64Encoded)
-            jwt_secret = this.base64decoder(jwt_secret);
         jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret,header.alg);
         console.log("New jwt token :", jwtToken);
         pm.globals.set("jwt_token", jwtToken);
@@ -241,28 +208,37 @@ var k=({
         return jsonBody;
     },
 
-/*-------------------------calling funtion--------------------------*/
+    getResolvedRequest(){
+        newRequest = new sdk.Request(pm.request.toJSON());
+        return newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
+    },
+
+    getJwtKeys (){
+
+        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
+        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
+    
+        if(jwt_sample === undefined || jwt_secret === undefined){
+            console.log("Invalid jwt_metaData, fetched jwt_sample value = " , + jwt_sample +"and jwt_secret key = " + jwt_secret);
+            return undefined;
+        }
+    
+        return { "jwt_sample" : jwt_sample, "jwt_secret" : jwt_secret };
+    },
+
+
+
+/*-------------------------calling main funtion--------------------------*/
 
     jwtProcess(){
         
-        try{
-            jwt_metaData = this.validateInput();
-            jwt_sample = jwt_metaData.jwt_sample;
-            jwt_secret = jwt_metaData.jwt_secret;
-        }
-        catch(err){
-            console.log(err.message);
+        jwt_metaData = this.getJwtKeys();
+        if(jwt_metaData == undefined)
             return;
-        }
-
-        newRequest = new sdk.Request(pm.request.toJSON()),
-        resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
+        resolvedRequest = this.getResolvedRequest();
         thisObj = this;
+
         setTimeout(function(){
-            if(thisObj.isEmptyObject(resolvedRequest)){
-                 throw new Error('request dynamic param is not resolved yet')
-            }
-            //console.log(resolvedRequest);
             try{
                 thisObj.createPrerequisiteMetadata();
                 [header, payload] = thisObj.parseJwt(jwt_sample, jwt_secret);
@@ -287,6 +263,5 @@ var k=({
 
 var JWT_SECRET = "jwt_secret";
 var JWT_SAMPLE = "jwt_sample";
-var BASE_64_ENCODED = true;
 sdk = require('postman-collection')
 k.jwtProcess()
