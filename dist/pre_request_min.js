@@ -284,3 +284,10 @@
         },100);
     }
 })
+
+
+var JWT_SECRET = "jwt_secret";
+var JWT_SAMPLE = "jwt_sample";
+var BASE_64_ENCODED = true;
+sdk = require('postman-collection')
+k.jwtProcess()
