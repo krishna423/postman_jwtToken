@@ -4,8 +4,7 @@
  * Date 12/09/20 09:41:43 PM
  * release 1.0.1
  **/
-
-({
+var k=({
 
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
