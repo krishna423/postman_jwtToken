@@ -4,8 +4,7 @@
  * Date 12/09/20 09:41:43 PM
  * release 1.0.1
  **/
-
-({
+var k=({
 
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
@@ -13,24 +12,56 @@
     BODY_FORMDATA               : "formdata",
     BODY_URL_ENCODED            : "urlencoded",
     BODY_RAW                    : "raw",
-    isSecretKeyBase64Encoded    : false,
     requstKeysMap               : new Map(),
     resolvedRequest             : new Object(),
 
-/*--------------------create map of keyvalue-------------------------*/
+
+/*---------------------utility---------------------------------------*/
     
-    isEmptyObject(value) {
-         return Object.keys(value).length === 0 && value.constructor === Object;
+    addSignature(unsignedToken,jwt_secret,alg){
+        //console.log(alg)
+        if(alg === "HS256")
+            return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
+        else if(alg === "HS512")
+            return this.base64url(CryptoJS.HmacSHA512(unsignedToken, jwt_secret));
+        else{
+            throw new Error("Algo is not supported  :" + alg);
+        } 
+
+    },
+    
+    base64url(source) {
+        encodedSource = CryptoJS.enc.Base64.stringify(source);
+        encodedSource = encodedSource.split('=').join('');
+        encodedSource = encodedSource.split('+').join('-');
+        encodedSource = encodedSource.split('/').join('_');
+        return encodedSource;
     },
 
-    createPayloadFromBody(jsonBody){
-        for(let key of Object.keys(jsonBody)) {
-            if(requstKeysMap.has(key)) {
-                jsonBody[key] = requstKeysMap.get(key);   
-            }    
-        }    
-        return jsonBody;
+    parseKeyValuePairFromList(dataList){
+        for(var index in dataList ){
+            keyValuePair = dataList[index];
+            this.requstKeysMap.set(keyValuePair.key,keyValuePair.value);
+        }
     },
+
+    jsonObjectToMap(jsonData) {
+        if( Array.isArray(jsonData) ){
+            jsonData = jsonData[0];
+        }
+        for(let k of Object.keys(jsonData)) {
+            if(jsonData[k] instanceof Object) {
+                this.requstKeysMap.set(k, JSON.stringify(jsonData[k]));
+            this.jsonObjectToMap(jsonData[k]);   
+            }
+            else {
+                this.requstKeysMap.set(k, jsonData[k]);
+            }    
+        }
+    },
+
+
+/*--------------------create map of keyvalue-------------------------*/
 
     parseRequestHeader(){
         requestHeaderList = resolvedRequest.header;
@@ -57,28 +88,6 @@
 
     parseUrlEncodedData(urlEncodedDataList){
         this.parseKeyValuePairFromList(urlEncodedDataList);
-    },
-
-    parseKeyValuePairFromList(dataList){
-        for(var index in dataList ){
-            keyValuePair = dataList[index];
-            this.requstKeysMap.set(keyValuePair.key,keyValuePair.value);
-        }
-    },
-
-    jsonObjectToMap(jsonData) {
-        if( Array.isArray(jsonData) ){
-            jsonData = jsonData[0];
-        }
-        for(let k of Object.keys(jsonData)) {
-            if(jsonData[k] instanceof Object) {
-                this.requstKeysMap.set(k, JSON.stringify(jsonData[k]));
-            this.jsonObjectToMap(jsonData[k]);   
-            }
-            else {
-                this.requstKeysMap.set(k, jsonData[k]);
-            }    
-        }
     },
 
     parseRawData(requestRawData){
@@ -120,7 +129,7 @@
         }
     },
 
-    createPrerequisiteMetadata(){
+    parseRequestMetadata(){
         this.parseRequestHeader();
         this.parseRequestQueryParam();
         this.parseRequestBody();
@@ -129,89 +138,18 @@
 
 /*-----------------------------parseJwt-----------------------------*/
 
-    parseJwt(token, jwt_secret) {
-        base64Header = token.split('.')[0]; 
-        base64Payload = token.split('.')[1];
-        signature = token.split('.')[2];
-        unsignedToken = base64Header + "." + base64Payload;
-        header = Buffer.from(base64Header, 'base64');
-        headerJson = JSON.parse(header);
-        payload = Buffer.from(base64Payload, 'base64');
-        payloadJson = JSON.parse(payload);
-        for(let key of Object.keys(payloadJson)) {
-            if(this.requstKeysMap.has(key)) {
-                mapValue = this.requstKeysMap.get(key);
-                if(typeof mapValue != typeof payloadJson[key]){
-                     console.log(typeof payloadJson[key])
-                    if(typeof payloadJson[key] == 'number')
-                        this.requstKeysMap.set(key,parseInt(mapValue))
-                    if(typeof payloadJson[key] == 'string')
-                        this.requstKeysMap.set(key,mapValue.toString())
-                    if(typeof payloadJson[key] == 'boolean')
-                        this.requstKeysMap.set(key,Boolean(mapValue))
-                  
-                }
-                     
-            }    
-        } 
-        return [headerJson, payloadJson];
+    parseJwt(token) {
+        tokenparts = token.split('.'); 
+        if(tokenparts.length != 3){
+            throw new Error("Invalid token format")
+        }
+
+        headerJson = JSON.parse( Buffer.from(tokenparts[0], 'base64'));
+        payloadJson = JSON.parse(Buffer.from(tokenparts[1], 'base64'));
+
+        return { "header" : headerJson, "payload" : payloadJson };
     },     
-
-    base64decoder(base64){
-        words = CryptoJS.enc.Base64.parse(base64);
-        decoded = CryptoJS.enc.Utf8.stringify(words);
-        return decoded;
-    },
-
-    validateInput (){
-        jwt_sample = pm.collectionVariables.get(JWT_SAMPLE);
-        jwt_secret = pm.collectionVariables.get(JWT_SECRET);
     
-        
-        if(jwt_sample == undefined){
-            throw new Error("jwt_sample is not exist for key : "+ JWT_SAMPLE);
-        }
-        if(jwt_secret == undefined){
-            throw new Error("jwt_secret is not exist for key : "+ JWT_SECRET);
-        }
-        this.isSecretKeyBase64Encoded();
-        
-        return { "jwt_sample" : jwt_sample, "jwt_secret" : jwt_secret };
-
-    },
-
-    isSecretKeyBase64Encoded(){
-        try{
-            if(BASE_64_ENCODED)
-                isSecretKeyBase64Encoded = true;
-            console.log("Secret is base64 encoded : ", BASE_64_ENCODED);
-        }catch(err){
-             console.log("Secret is not base64 encoded");
-        }
-        
-    },
-
-/*---------------------utility---------------------------------------*/
-    
-    addSignature(unsignedToken,jwt_secret,alg){
-        //console.log(alg)
-        if(alg === "HS256")
-            return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
-        else if(alg === "HS512")
-            return this.base64url(CryptoJS.HmacSHA512(unsignedToken, jwt_secret));
-        else{
-            throw new Error("Algo is not supported  :" + alg);
-        } 
-
-    },
-    
-    base64url(source) {
-        encodedSource = CryptoJS.enc.Base64.stringify(source);
-        encodedSource = encodedSource.split('=').join('');
-        encodedSource = encodedSource.split('+').join('-');
-        encodedSource = encodedSource.split('/').join('_');
-        return encodedSource;
-    },
 
 /*---------------------create jwt--------------------------------*/
     
@@ -220,8 +158,6 @@
         encodedHeader = this.encodingData(header); 
         encodedPayload = this.encodingData(payload);
         unsignedToken = encodedHeader + "." + encodedPayload;
-        if(this.isSecretKeyBase64Encoded)
-            jwt_secret = this.base64decoder(jwt_secret);
         jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret,header.alg);
         console.log("New jwt token :", jwtToken);
         pm.globals.set("jwt_token", jwtToken);
@@ -233,54 +169,99 @@
         return encodedData;
     },
     
-    createPayloadFromBody(jsonBody){
-        for(let key of Object.keys(jsonBody)) {
+    createPayloadFromBody(payloadJson){
+        for(let key of Object.keys(payloadJson)) {
             if(this.requstKeysMap.has(key)) {
-                jsonBody[key] = this.requstKeysMap.get(key);   
+                mapValue = this.requstKeysMap.get(key);
+                if(typeof mapValue == typeof payloadJson[key]){
+                    payloadJson[key] = this.requstKeysMap.get(key);   
+                }else{
+                     console.log("JWT and request param type mismatch, trying to convert from ",  typeof mapValue, "to " , typeof payloadJson[key])
+                    if(typeof payloadJson[key] == 'number')
+                        payloadJson[key]=parseInt(mapValue);
+                    if(typeof payloadJson[key] == 'string')
+                        payloadJson[key]=mapValue.toString();
+                    if(typeof payloadJson[key] == 'boolean')
+                        payloadJson[key]=Boolean(mapValue);
+                }
+                  
             }    
-        }    
-        return jsonBody;
+        }
+        return payloadJson;
     },
 
-/*-------------------------calling funtion--------------------------*/
+
+/*---------------------validate prerequisite--------------------------------*/
+
+    getResolvedRequest(){
+        newRequest = new sdk.Request(pm.request.toJSON());
+        return newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
+    },
+
+    getJwtKeys (){
+
+        JWT_SAMPLE_KEY_NAME = typeof JWT_SAMPLE == 'undefined' ? "JWT_SAMPLE" : JWT_SAMPLE;
+        JWT_SECRET_KEY_NAME = typeof JWT_SECRET == 'undefined' ? "JWT_SECRET" : JWT_SECRET;
+
+
+        console.log("Fetching JWT sample from variableKey: "+ JWT_SAMPLE_KEY_NAME+ " AND JWT secret from variableKey: "+JWT_SECRET_KEY_NAME);
+        jwtSample = pm.collectionVariables.get(JWT_SAMPLE_KEY_NAME);
+        jwtSecret = pm.collectionVariables.get(JWT_SECRET_KEY_NAME);
+    
+        if(jwtSample === undefined){
+            pm.collectionVariables.set(JWT_SAMPLE_KEY_NAME,"kindly add sample jwt token")
+        }
+        if(jwtSecret === undefined){
+            pm.collectionVariables.set(JWT_SECRET_KEY_NAME,"kindly add jwt secret value")
+        }
+
+        if(jwtSample === undefined || jwtSecret === undefined){
+            throw new Error("Invalid jwt_metaData, fetched jwtSample value = " + jwtSample +"and jwtSecret key = " + jwtSecret);
+        }
+        return { "jwtSample" : jwtSample, "jwtSecret" : jwtSecret };
+    },
+
+
+
+/*-------------------------calling main funtion--------------------------*/
 
     jwtProcess(){
         
         try{
-            jwt_metaData = this.validateInput();
-            jwt_sample = jwt_metaData.jwt_sample;
-            jwt_secret = jwt_metaData.jwt_secret;
+            jwtKeys = this.getJwtKeys();
+            jwtParsedData = this.parseJwt(jwtKeys.jwtSample);
+            resolvedRequest = this.getResolvedRequest();
+        }catch(err){
+                console.log(err.message);
+                return;
         }
-        catch(err){
-            console.log(err.message);
-            return;
-        }
-
-        newRequest = new sdk.Request(pm.request.toJSON()),
-        resolvedRequest = newRequest.toObjectResolved(null, [pm.variables.toObject()], { ignoreOwnVariables: true });
+        
         thisObj = this;
         setTimeout(function(){
-            if(thisObj.isEmptyObject(resolvedRequest)){
-                 throw new Error('request dynamic param is not resolved yet')
-            }
-            //console.log(resolvedRequest);
             try{
-                thisObj.createPrerequisiteMetadata();
-                [header, payload] = thisObj.parseJwt(jwt_sample, jwt_secret);
+                thisObj.parseRequestMetadata();
             }catch(err){
-                console.log(err.message);
+                console.log("Error  : ",err.message);
                 return;
             }
         
             setTimeout(function(){
-                console.log("New keysMap,",thisObj.requstKeysMap);
-                payload = thisObj.createPayloadFromBody(payload);
+                console.log("New keysMap : ",thisObj.requstKeysMap);
+                console.log("Parsed JWT : ",jwtParsedData);
+
+                payload = thisObj.createPayloadFromBody(jwtParsedData.payload);
                 setTimeout(function(){
-                    console.log("New header payload",header,payload);
-                    thisObj.createJwt(header,payload, jwt_secret); 
+                    console.log("New header payload",jwtParsedData.header,payload);
+                    thisObj.createJwt(jwtParsedData.header,payload, jwtSecret); 
                 }, 100);
 
             }, 100);
         },100);
     }
 })
+
+
+// JWT_SECRET = "jwt_secret11";
+// JWT_SAMPLE = "jwt_sample11";
+sdk = require('postman-collection')
+k.jwtProcess()
