@@ -139,13 +139,9 @@ var k=({
 /*-----------------------------parseJwt-----------------------------*/
 
     parseJwt(token) {
-        if(token == undefined)
-            return undefined;
-        
         tokenparts = token.split('.'); 
         if(tokenparts.length != 3){
-            console.log("Invalid token format")
-            return undefined;
+            throw new Error("Invalid token format")
         }
 
         headerJson = JSON.parse( Buffer.from(tokenparts[0], 'base64'));
@@ -204,12 +200,19 @@ var k=({
 
     getJwtKeys (){
 
+        if(JWT_SAMPLE == undefined){
+            var JWT_SAMPLE = "JWT_SAMPLE"
+        }
+        if(JWT_SECRET == undefined){
+            var JWT_SECRET = "JWT_SECRET"
+        }
+
+        console.log("Fetching JWT sample from variableKey: "+ JWT_SAMPLE+ " AND JWT secret from variableKey: "+JWT_SECRET);
         jwtSample = pm.collectionVariables.get(JWT_SAMPLE);
         jwtSecret = pm.collectionVariables.get(JWT_SECRET);
     
         if(jwtSample === undefined || jwtSecret === undefined){
-            console.log("Invalid jwt_metaData, fetched jwtSample value = " , + jwtSample +"and jwtSecret key = " + jwtSecret);
-            return undefined;
+            throw new Error("Invalid jwt_metaData, fetched jwtSample value = " + jwtSample +"and jwtSecret key = " + jwtSecret);
         }
         return { "jwtSample" : jwtSample, "jwtSecret" : jwtSecret };
     },
@@ -220,12 +223,15 @@ var k=({
 
     jwtProcess(){
         
-        jwtKeys = this.getJwtKeys();
-        jwtParsedData = this.parseJwt(jwtKeys.jwtSample);
-        if(jwtKeys == undefined || jwtParsedData == undefined )
-            return;
+        try{
+            jwtKeys = this.getJwtKeys();
+            jwtParsedData = this.parseJwt(jwtKeys.jwtSample);
+            resolvedRequest = this.getResolvedRequest();
+        }catch(err){
+                console.log(err.message);
+                return;
+        }
 
-        resolvedRequest = this.getResolvedRequest();
         thisObj = this;
         setTimeout(function(){
             try{
@@ -251,7 +257,7 @@ var k=({
 })
 
 
-var JWT_SECRET = "jwt_secret";
-var JWT_SAMPLE = "jwt_sample";
+// var JWT_SECRET = "jwt_secret";
+// var JWT_SAMPLE = "jwt_sample";
 sdk = require('postman-collection')
 k.jwtProcess()
