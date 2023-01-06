@@ -7,13 +7,6 @@
 
 sdk = require('postman-collection')
 var scriptInString=`({
-    
-    /**
-     * @Author Krishna K. Maurya
-     * @Project autoJWTCreation
-     * Date 04/05/21 09:41:43 PM
-     * release 2.0.0
-     **/
 
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
