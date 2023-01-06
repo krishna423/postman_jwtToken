@@ -200,17 +200,21 @@ var k=({
 
     getJwtKeys (){
 
-        if(JWT_SAMPLE == undefined){
-            var JWT_SAMPLE = "JWT_SAMPLE"
+        JWT_SAMPLE_KEY_NAME = typeof JWT_SAMPLE == 'undefined' ? "JWT_SAMPLE" : JWT_SAMPLE;
+        JWT_SECRET_KEY_NAME = typeof JWT_SECRET == 'undefined' ? "JWT_SECRET" : JWT_SECRET;
+
+
+        console.log("Fetching JWT sample from variableKey: "+ JWT_SAMPLE_KEY_NAME+ " AND JWT secret from variableKey: "+JWT_SECRET_KEY_NAME);
+        jwtSample = pm.collectionVariables.get(JWT_SAMPLE_KEY_NAME);
+        jwtSecret = pm.collectionVariables.get(JWT_SECRET_KEY_NAME);
+    
+        if(jwtSample === undefined){
+            pm.collectionVariables.set(JWT_SAMPLE_KEY_NAME,"kindly add sample jwt token")
         }
-        if(JWT_SECRET == undefined){
-            var JWT_SECRET = "JWT_SECRET"
+        if(jwtSecret === undefined){
+            pm.collectionVariables.set(JWT_SECRET_KEY_NAME,"kindly add jwt secret value")
         }
 
-        console.log("Fetching JWT sample from variableKey: "+ JWT_SAMPLE+ " AND JWT secret from variableKey: "+JWT_SECRET);
-        jwtSample = pm.collectionVariables.get(JWT_SAMPLE);
-        jwtSecret = pm.collectionVariables.get(JWT_SECRET);
-    
         if(jwtSample === undefined || jwtSecret === undefined){
             throw new Error("Invalid jwt_metaData, fetched jwtSample value = " + jwtSample +"and jwtSecret key = " + jwtSecret);
         }
@@ -231,13 +235,13 @@ var k=({
                 console.log(err.message);
                 return;
         }
-
+        
         thisObj = this;
         setTimeout(function(){
             try{
                 thisObj.parseRequestMetadata();
             }catch(err){
-                console.log(err.message);
+                console.log("Error  : ",err.message);
                 return;
             }
         
@@ -257,7 +261,7 @@ var k=({
 })
 
 
-// var JWT_SECRET = "jwt_secret";
-// var JWT_SAMPLE = "jwt_sample";
+// JWT_SECRET = "jwt_secret11";
+// JWT_SAMPLE = "jwt_sample11";
 sdk = require('postman-collection')
 k.jwtProcess()
