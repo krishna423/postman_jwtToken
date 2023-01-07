@@ -2,7 +2,7 @@
  * @Author Krishna K. Maurya
  * @Project autoJWTCreation
  * Date 04/05/21 09:41:43 PM
- * release 2.0.0
+ * release 3.0.1
  **/
 
 sdk = require('postman-collection')
