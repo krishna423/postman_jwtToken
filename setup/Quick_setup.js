@@ -19,8 +19,6 @@
                 "    pm.response.to.have.status(200)",
                 "    pm.globals.set(\"JWT_SCRIPT\", responseBody)",
                 "    pm.globals.set(\"JWT_TOKEN\", \"\")",
-                "    pm.collectionVariables.set(\"JWT_SAMPLE\",\"\")",
-                "    pm.collectionVariables.set(\"JWT_SECRET\",\"\")",
                 "});"
               ],
               "type": "text/javascript"
@@ -44,10 +42,6 @@
         "request": {
           "method": "GET",
           "header": [],
-          "body": {
-            "mode": "raw",
-            "raw": ""
-          },
           "url": {
             "raw": "https://krishna423.github.io/postman_jwtToken/dist/pre_request_min.js",
             "protocol": "https",
