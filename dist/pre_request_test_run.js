@@ -21,7 +21,6 @@ var scriptInString=`({
 /*---------------------utility---------------------------------------*/
     
     addSignature(unsignedToken,jwt_secret,alg){
-        //console.log(alg)
         if(alg === "HS256")
             return this.base64url(CryptoJS.HmacSHA256(unsignedToken, jwt_secret));
         else if(alg === "HS512")
@@ -104,7 +103,7 @@ var scriptInString=`({
         }
         rawData = requestRawData.raw; 
         if(language != this.BODY_LANGUAGE_JSON ){
-            throw new Error("Not able to processing language : " + language + "  Only json is supported right now") ;
+            console.log("Not able to processing language : " + language + "  Only json is supported right now") ;
         }
         jsonData = JSON.parse(rawData);
         this.jsonObjectToMap(jsonData);
@@ -127,7 +126,7 @@ var scriptInString=`({
                 this.parseRawData(requestBody);
                 break;
             default :
-                throw new Error("requestBody mode does not match to supported mode Given mode: " + requestBody.mode +" is not supported right now" );
+                console.log("Request parsing is not allowed for given mode: " + requestBody.mode );
         }
     },
 
@@ -135,7 +134,6 @@ var scriptInString=`({
         this.parseRequestHeader();
         this.parseRequestQueryParam();
         this.parseRequestBody();
-        /*console.log('request map',this.requstKeysMap)*/
     },
 
 /*-----------------------------parseJwt-----------------------------*/
@@ -143,7 +141,7 @@ var scriptInString=`({
     parseJwt(token) {
         tokenparts = token.split('.'); 
         if(tokenparts.length != 3){
-            throw new Error("Invalid token format")
+            throw new Error("Invalid token format, token : "+ token)
         }
 
         headerJson = JSON.parse( Buffer.from(tokenparts[0], 'base64'));
@@ -156,13 +154,12 @@ var scriptInString=`({
 /*---------------------create jwt--------------------------------*/
     
     createJwt(header, payload, jwt_secret){
-        /*console.log("new jwt:-",header, payload);*/
         encodedHeader = this.encodingData(header); 
         encodedPayload = this.encodingData(payload);
         unsignedToken = encodedHeader + "." + encodedPayload;
         jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret,header.alg);
         console.log("New jwt token :", jwtToken);
-        pm.globals.set("jwt_token", jwtToken);
+        pm.globals.set("JWT_TOKEN", jwtToken);
     },
 
     encodingData(jsonData){
@@ -211,14 +208,17 @@ var scriptInString=`({
         jwtSecret = pm.collectionVariables.get(JWT_SECRET_KEY_NAME);
     
         if(jwtSample === undefined){
-            pm.collectionVariables.set(JWT_SAMPLE_KEY_NAME,"kindly add sample jwt token")
+            pm.collectionVariables.set(JWT_SAMPLE_KEY_NAME,"")
         }
         if(jwtSecret === undefined){
-            pm.collectionVariables.set(JWT_SECRET_KEY_NAME,"kindly add jwt secret value")
+            pm.collectionVariables.set(JWT_SECRET_KEY_NAME,"")
         }
 
         if(jwtSample === undefined || jwtSecret === undefined){
-            throw new Error("Invalid jwt_metaData, fetched jwtSample value = " + jwtSample +"and jwtSecret key = " + jwtSecret);
+            throw new Error("Input varibales are not created, Creating variableKey in same collection with name " + JWT_SAMPLE_KEY_NAME +"  for sample JWT Token, and  " + JWT_SECRET_KEY_NAME +" for JWT Secret");
+        }
+        if(jwtSample == '' || jwtSecret ==''){
+            throw new Error("Sample values are not provided in input variables, fetched jwtSample value = " + jwtSample +",and jwtSecret key value = " + jwtSecret + " from collection varibales");
         }
         return { "jwtSample" : jwtSample, "jwtSecret" : jwtSecret };
     },
@@ -240,15 +240,10 @@ var scriptInString=`({
         
         thisObj = this;
         setTimeout(function(){
-            try{
-                thisObj.parseRequestMetadata();
-            }catch(err){
-                console.log("Error  : ",err.message);
-                return;
-            }
-        
+
+            thisObj.parseRequestMetadata();
             setTimeout(function(){
-                console.log("New keysMap : ",thisObj.requstKeysMap);
+                console.log("Get updated values from input request : ",thisObj.requstKeysMap);
                 console.log("Parsed JWT : ",jwtParsedData);
 
                 payload = thisObj.createPayloadFromBody(jwtParsedData.payload);
@@ -256,7 +251,6 @@ var scriptInString=`({
                     console.log("New header payload",jwtParsedData.header,payload);
                     thisObj.createJwt(jwtParsedData.header,payload, jwtSecret); 
                 }, 100);
-
             }, 100);
         },100);
     }
