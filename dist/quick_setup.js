@@ -89,7 +89,7 @@
           "header": [
             {
               "key": "jwt_token",
-              "value": "{{jWT_TOKEN}}",
+              "value": "{{JWT_TOKEN}}",
               "type": "text"
             }
           ],
