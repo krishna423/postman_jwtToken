@@ -157,7 +157,7 @@ var k=({
         unsignedToken = encodedHeader + "." + encodedPayload;
         jwtToken = unsignedToken + "." + this.addSignature(unsignedToken, jwt_secret,header.alg);
         console.log("New jwt token :", jwtToken);
-        pm.globals.set("JWT_TOKEN", jwtToken);
+        pm.collectionVariables.set("JWT_TOKEN", jwtToken);
     },
 
     encodingData(jsonData){
@@ -197,23 +197,23 @@ var k=({
 
     getJwtKeys (){
 
-        JWT_SAMPLE_KEY_NAME = typeof JWT_SAMPLE == 'undefined' ? "JWT_SAMPLE" : JWT_SAMPLE;
+        JWT_TOKEN_KEY_NAME = typeof JWT_TOKEN == 'undefined' ? "JWT_TOKEN" : JWT_TOKEN;
         JWT_SECRET_KEY_NAME = typeof JWT_SECRET == 'undefined' ? "JWT_SECRET" : JWT_SECRET;
 
 
-        console.log("Fetching JWT sample from variableKey: "+ JWT_SAMPLE_KEY_NAME+ " AND JWT secret from variableKey: "+JWT_SECRET_KEY_NAME);
-        jwtSample = pm.collectionVariables.get(JWT_SAMPLE_KEY_NAME);
+        console.log("Fetching JWT sample from variableKey: "+ JWT_TOKEN_KEY_NAME+ " AND JWT secret from variableKey: "+JWT_SECRET_KEY_NAME);
+        jwtSample = pm.collectionVariables.get(JWT_TOKEN_KEY_NAME);
         jwtSecret = pm.collectionVariables.get(JWT_SECRET_KEY_NAME);
     
         if(jwtSample === undefined){
-            pm.collectionVariables.set(JWT_SAMPLE_KEY_NAME,"")
+            pm.collectionVariables.set(JWT_TOKEN_KEY_NAME,"")
         }
         if(jwtSecret === undefined){
             pm.collectionVariables.set(JWT_SECRET_KEY_NAME,"")
         }
 
         if(jwtSample === undefined || jwtSecret === undefined){
-            throw new Error("Input varibales are not created, Creating variableKey in same collection with name " + JWT_SAMPLE_KEY_NAME +"  for sample JWT Token, and  " + JWT_SECRET_KEY_NAME +" for JWT Secret");
+            throw new Error("Input varibales are not created, Creating variableKey in same collection with name " + JWT_TOKEN_KEY_NAME +"  for sample JWT Token, and  " + JWT_SECRET_KEY_NAME +" for JWT Secret");
         }
         if(jwtSample == '' || jwtSecret ==''){
             throw new Error("Sample values are not provided in input variables, fetched jwtSample value = " + jwtSample +",and jwtSecret key value = " + jwtSecret + " from collection varibales");
