@@ -7,6 +7,7 @@
  **/
 
 ({
+
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
     BODY_LANGUAGE_XML           : "xml",
@@ -15,7 +16,6 @@
     BODY_RAW                    : "raw",
     requstKeysMap               : new Map(),
     resolvedRequest             : new Object(),
-
 
 
 /*---------------------utility---------------------------------------*/
@@ -130,12 +130,17 @@
         }
     },
 
+    setDefaultValues(){
+        this.requstKeysMap.set("iat",Math.floor(Date.now() / 1000));
+        this.requstKeysMap.set("jti",Math.random().toString(36).substring(2,12));
+    },
+
     parseRequestMetadata(){
+        this.setDefaultValues();
         this.parseRequestHeader();
         this.parseRequestQueryParam();
         this.parseRequestBody();
     },
-
 
 /*-----------------------------parseJwt-----------------------------*/
 
