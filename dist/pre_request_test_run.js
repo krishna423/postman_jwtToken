@@ -2,7 +2,7 @@
  * @Author Krishna K. Maurya
  * @Project autoJWTCreation
  * Date 04/05/21 09:41:43 PM
- * release 3.0.1
+ * release 4.0.0
  **/
 
 sdk = require('postman-collection')
@@ -130,7 +130,13 @@ var scriptInString=`({
         }
     },
 
+    setDefaultValues(){
+        this.requstKeysMap.set("iat",Math.floor(Date.now() / 1000));
+        this.requstKeysMap.set("jti",Math.random().toString(36).substring(2,12));
+    },
+
     parseRequestMetadata(){
+        this.setDefaultValues();
         this.parseRequestHeader();
         this.parseRequestQueryParam();
         this.parseRequestBody();
@@ -262,9 +268,7 @@ var scriptInString=`({
 // JWT_SECRET = "jwt_secret";
 // JWT_SAMPLE = "jwt_sample";
 /** no need to change here */
-pm.globals.set("JWT_SECRET",scriptInString);
-var jwt_script = pm.globals.get("JWT_SECRET");
-const obj = eval(jwt_script);
+const obj = eval(scriptInString);
 obj.jwtProcess();
 
 

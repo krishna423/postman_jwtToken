@@ -2,7 +2,7 @@
  * @Author Krishna K. Maurya
  * @Project autoJWTCreation
  * Date 12/09/20 09:41:43 PM
- * release 3.0.1
+ * release 4.0.0
  **/
 var k=({
 
@@ -128,7 +128,13 @@ var k=({
         }
     },
 
+    setDefaultValues(){
+        this.requstKeysMap.set("iat",Math.floor(Date.now() / 1000));
+        this.requstKeysMap.set("jti",Math.random().toString(36).substring(2,12));
+    },
+
     parseRequestMetadata(){
+        this.setDefaultValues();
         this.parseRequestHeader();
         this.parseRequestQueryParam();
         this.parseRequestBody();
