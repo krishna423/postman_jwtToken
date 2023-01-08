@@ -2,8 +2,8 @@
  * @Author Krishna K. Maurya
  * @Project autoJWTCreation
  * Date 04/05/21 09:41:43 PM
- * updated 08/01/23 11:01:11AM
- * release 3.0.1
+ * updated 08/01/23 12:04:11AM
+ * release 4.0.0
  **/
 
 ({
@@ -16,6 +16,7 @@
     BODY_RAW                    : "raw",
     requstKeysMap               : new Map(),
     resolvedRequest             : new Object(),
+
 
 
 /*---------------------utility---------------------------------------*/
@@ -60,6 +61,7 @@
             }    
         }
     },
+
 
 
 /*--------------------create map of keyvalue-------------------------*/
@@ -141,6 +143,7 @@
         this.parseRequestQueryParam();
         this.parseRequestBody();
     },
+
 
 /*-----------------------------parseJwt-----------------------------*/
 
