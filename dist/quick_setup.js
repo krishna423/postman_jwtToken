@@ -18,7 +18,6 @@
                 "pm.test(\"Status code should be 200\", function () {",
                 "    pm.response.to.have.status(200)",
                 "    pm.globals.set(\"JWT_SCRIPT\", responseBody)",
-                "    pm.globals.set(\"JWT_TOKEN\", \"\")",
                 "});"
               ],
               "type": "text/javascript"
@@ -147,7 +146,7 @@
     "variable": [
       {
         "id": "29cae80d-2cef",
-        "key": "JWT_SAMPLE",
+        "key": "JWT_TOKEN",
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.QFHowH84hH4yWs9agTAs1xpas-lePeZore-hKMtzq2Y"
       },
       {
