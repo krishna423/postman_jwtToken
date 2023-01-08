@@ -1,5 +1,12 @@
-({
+/**
+ * @Author Krishna K. Maurya
+ * @Project autoJWTCreation
+ * Date 04/05/21 09:41:43 PM
+ * updated 08/01/23 11:01:11AM
+ * release 3.0.1
+ **/
 
+({
     FORM_DATA_TEXT              : "text",
     BODY_LANGUAGE_JSON          : "json", 
     BODY_LANGUAGE_XML           : "xml",
@@ -8,6 +15,7 @@
     BODY_RAW                    : "raw",
     requstKeysMap               : new Map(),
     resolvedRequest             : new Object(),
+
 
 
 /*---------------------utility---------------------------------------*/
@@ -127,6 +135,7 @@
         this.parseRequestQueryParam();
         this.parseRequestBody();
     },
+
 
 /*-----------------------------parseJwt-----------------------------*/
 
